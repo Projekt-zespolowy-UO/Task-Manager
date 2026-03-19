@@ -1,0 +1,266 @@
+body {
+  margin: 0;
+  background: #0b0b0b;
+  color: white;
+  font-family: "Inter", sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 0.8px, transparent 0.8px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 0.8px, transparent 0.8px);
+
+  background-size: 30px 30px;
+
+  transform: perspective(1200px) rotateX(55deg) scale(1.5) translateY(150px);
+  transform-origin: center top;
+
+  opacity: 0.7;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+
+  background:
+    linear-gradient(to bottom, #0b0b0b 0%, #0b0b0b 140px, transparent 300px),
+    linear-gradient(to top, #0b0b0b 0%, #0b0b0b 140px, transparent 300px),
+    radial-gradient(circle at center, transparent 20%, #0b0b0b 80%);
+
+  pointer-events: none;
+}
+
+header {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+
+  background: rgba(11, 11, 11, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 90%;
+  padding: 15px 0;
+}
+
+.navbar-logo-shape {
+  height: 110px;
+  width: auto;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+}
+
+.nav-center {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  flex: 1;
+}
+
+.navbar-link {
+  color: rgb(170, 171, 172);
+  font-size: 18px;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 30px;
+  transition: 0.2s;
+}
+
+.navbar-link:hover {
+  color: white;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.login-btn {
+  color: rgb(170, 171, 172);
+  text-decoration: none;
+  font-size: 18px;
+  transition: 0.2s;
+  padding-right: 20px;
+}
+
+.login-btn:hover {
+  color: white;
+}
+
+.signup-btn {
+  background: #3b82f6;
+  color: white;
+  padding: 8px 18px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 18px;
+  transition: 0.2s;
+  font-weight: 500;
+}
+
+.signup-btn:hover {
+  background: #2563eb;
+}
+
+.content {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: auto;
+}
+
+h1 {
+  width: 80%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.header-text1 {
+  font-family: sans-serif;
+  font-weight: 100;
+  font-size: 50px;
+  padding: 40px;
+}
+
+.header-text2 {
+  font-size: 80px;
+  font-weight: 800;
+  padding-bottom: 20px;
+
+  background: linear-gradient(
+    90deg,
+    #ff7a18,
+    #ff3d77,
+    #7a5cff,
+    #00c6ff,
+    #00ffa3
+  );
+
+  background-size: 300% 300%;
+
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  animation: gradientMove 6s ease infinite;
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.header-text3 {
+  width: 800px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  font-size: 25px;
+  text-align: center;
+  font-weight: 100;
+  color: rgb(108, 105, 105);
+}
+
+.content-buttons {
+  display: flex;
+  justify-content: center;
+}
+
+.start-btn {
+  background: #3b82f6;
+  color: white;
+  padding: 15px 30px 15px 30px;
+
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 28px;
+  transition: 0.2s;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.start-btn:hover {
+  background: #2563eb;
+}
+
+.description {
+  display: flex;
+  justify-content: flex-start;
+  gap: 40px;
+  width: 80%;
+  padding: 50px;
+}
+
+.description-img {
+  height: 400px;
+  width: 50%;
+  transform: perspective(1000px) rotateX(-10deg) rotateY(-40deg);
+}
+
+.description-container {
+  display: flex;
+  flex-direction: column;
+  width: 50%;
+  padding-top: 110px;
+}
+
+.description-text1 {
+  font-family: sans-serif;
+  font-size: 30px;
+  color: #3f73e4;
+  font-weight: 500;
+  padding-bottom: 16px;
+}
+
+.description-text2 {
+  font-family: sans-serif;
+  font-weight: 800;
+  font-size: 50px;
+  color: #ffffff;
+  padding-bottom: 16px;
+}
+
+.description-text3 {
+  font-family: sans-serif;
+  font-size: 20px;
+  color: #9c9c9e;
+  line-height: 1.6;
+}
+
+.bottom {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  justify-content: center;
+
+  background: rgba(11, 11, 11, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  font-family: sans-serif;
+  font-size: 18px;
+  color: #a7a4a4;
+  align-items: center;
+}
