@@ -14,7 +14,6 @@
             ><img class="navbar-logo-shape" src="../images/logo.png" alt="logo"
           /></a>
         </div>
-
         <div class="nav-center">
           <a class="navbar-link" href="">Funkcje</a>
           <a class="navbar-link" href="">Kontakt</a>
@@ -24,9 +23,17 @@
         <div class="nav-right">
           <a class="login-btn" href="">Zaloguj się</a>
           <a class="signup-btn" href="">Zarejestruj się</a>
+          <div class="menu-toggle" id="menu-toggle">☰</div>
         </div>
       </div>
     </header>
+    <div class="mobile-menu" id="mobile-menu">
+      <a class="navbar-link" href="">Funkcje</a>
+      <a class="navbar-link" href="">Kontakt</a>
+      <a class="navbar-link" href="">Pomoc</a>
+      <a class="navbar-link" href="">Informacje</a>
+    </div>
+    <div class="overlay" id="overlay"></div>
     <div class="content">
       <h1>
         <span class="header-text1">Oprogramowanie do zarządzania pracą </span>
@@ -39,6 +46,7 @@
         >
       </h1>
       <div class="content-buttons">
+        <button class="download-btn">Pobierz aplikacje</button>
         <button class="start-btn">Zaczynamy</button>
       </div>
       <div class="description">
@@ -54,10 +62,14 @@
             wszystkiego.</span
           >
         </div>
-
-        <img class="description-img" src="../images/vrWindows.png" alt="" />
+        <img
+          class="description-img"
+          src="../images/virtualWindows.png"
+          alt=""
+        />
       </div>
     </div>
     <div class="bottom">© 2026 Planix. Wszelkie prawa zastrzeżone.</div>
+    <script src="../scripts/navigation.js"></script>
   </body>
 </html>
