@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planix | Logowanie</title>
+    <link rel="stylesheet" href="../styles/index.css" />
+  </head>
+  <body class="auth-page">
+    <header>
+      <div class="navbar">
+        <div class="nav-left">
+          <a href="./index.html">
+            <img class="navbar-logo-shape" src="../images/logo.png" alt="logo" />
+          </a>
+        </div>
+
+        <div class="nav-center">
+          <a class="navbar-link" href="./index.html">Funkcje</a>
+          <a class="navbar-link" href="./index.html">Kontakt</a>
+          <a class="navbar-link" href="./index.html">Pomoc</a>
+          <a class="navbar-link" href="./index.html">Informacje</a>
+        </div>
+
+        <div class="nav-right">
+          <a class="login-btn" href="./login.html">Zaloguj się</a>
+          <a class="signup-btn" href="./registration.html">Zarejestruj się</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="content auth-content">
+      <section class="description auth-layout">
+        <div class="description-container auth-info">
+          <span class="description-text1">Planix Workspace</span>
+          <span class="description-text2">Wróć do swoich zadań.</span>
+          <span class="description-text3">
+            Zaloguj się do swojego panelu, sprawdź priorytety, terminy i statusy
+            projektów w jednym miejscu.
+          </span>
+          <span class="description-text3">
+            To makieta frontendu, więc formularz służy tylko do prezentacji
+            interfejsu.
+          </span>
+        </div>
+
+        <section class="auth-box">
+          <div class="auth-box-header">
+            <span class="description-text1">Witaj ponownie</span>
+            <span class="auth-box-copy">Zaloguj się do swojego konta Planix.</span>
+          </div>
+
+          <form class="auth-form" action="#">
+            <label class="auth-field">
+              <span>Adres e-mail</span>
+              <input type="email" placeholder="twoj@email.com" />
+            </label>
+
+            <label class="auth-field">
+              <span>Hasło</span>
+              <input type="password" placeholder="Wpisz hasło" />
+            </label>
+
+            <div class="auth-row">
+              <label class="auth-check">
+                <input type="checkbox" />
+                <span>Zapamiętaj mnie</span>
+              </label>
+              <a class="auth-link" href="#">Nie pamiętasz hasła?</a>
+            </div>
+
+            <button class="start-btn auth-submit" type="submit">
+              Zaloguj się
+            </button>
+
+            <div class="auth-divider">
+              <span>lub</span>
+            </div>
+
+            <button class="auth-ghost-btn" type="button">
+              Kontynuuj z Google
+            </button>
+          </form>
+
+          <p class="auth-switch">
+            Nie masz jeszcze konta?
+            <a class="auth-link" href="./registration.html">Utwórz konto</a>
+          </p>
+        </section>
+      </section>
+    </main>
+
+    <div class="bottom">© 2026 Planix. Wszelkie prawa zastrzeżone.</div>
+  </body>
+</html>

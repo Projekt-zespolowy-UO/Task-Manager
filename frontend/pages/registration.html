@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planix | Rejestracja</title>
+    <link rel="stylesheet" href="../styles/index.css" />
+  </head>
+  <body class="auth-page">
+    <header>
+      <div class="navbar">
+        <div class="nav-left">
+          <a href="./index.html">
+            <img class="navbar-logo-shape" src="../images/logo.png" alt="logo" />
+          </a>
+        </div>
+
+        <div class="nav-center">
+          <a class="navbar-link" href="./index.html">Funkcje</a>
+          <a class="navbar-link" href="./index.html">Kontakt</a>
+          <a class="navbar-link" href="./index.html">Pomoc</a>
+          <a class="navbar-link" href="./index.html">Informacje</a>
+        </div>
+
+        <div class="nav-right">
+          <a class="login-btn" href="./login.html">Zaloguj się</a>
+          <a class="signup-btn" href="./registration.html">Zarejestruj się</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="content auth-content">
+      <section class="description auth-layout">
+        <div class="description-container auth-info">
+          <span class="description-text1">Nowe konto</span>
+          <span class="description-text2">Stwórz przestrzeń dla zespołu.</span>
+          <span class="description-text3">
+            W jednym miejscu możesz potem trzymać zadania, dokumenty i terminy,
+            bez przełączania się między wieloma narzędziami.
+          </span>
+          <span class="description-text3">
+            Rejestracja poniżej jest wizualna, więc pola i przycisk nie wysyłają
+            żadnych danych.
+          </span>
+        </div>
+
+        <section class="auth-box">
+          <div class="auth-box-header">
+            <span class="description-text1">Utwórz konto</span>
+            <span class="auth-box-copy">
+              Rozpocznij pracę z Planix w kilku prostych polach.
+            </span>
+          </div>
+
+          <form class="auth-form" action="#">
+            <label class="auth-field">
+              <span>Imię i nazwisko</span>
+              <input type="text" placeholder="Jan Kowalski" />
+            </label>
+
+            <label class="auth-field">
+              <span>Adres e-mail</span>
+              <input type="email" placeholder="jan@email.com" />
+            </label>
+
+            <label class="auth-field">
+              <span>Hasło</span>
+              <input type="password" placeholder="Utwórz hasło" />
+            </label>
+
+            <label class="auth-field">
+              <span>Powtórz hasło</span>
+              <input type="password" placeholder="Powtórz hasło" />
+            </label>
+
+            <label class="auth-check auth-check-wide">
+              <input type="checkbox" />
+              <span>Akceptuję regulamin i politykę prywatności.</span>
+            </label>
+
+            <button class="start-btn auth-submit" type="submit">
+              Utwórz konto
+            </button>
+          </form>
+
+          <p class="auth-switch">
+            Masz już konto?
+            <a class="auth-link" href="./login.html">Przejdź do logowania</a>
+          </p>
+        </section>
+      </section>
+    </main>
+
+    <div class="bottom">© 2026 Planix. Wszelkie prawa zastrzeżone.</div>
+  </body>
+</html>
