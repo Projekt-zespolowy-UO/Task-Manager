@@ -126,7 +126,7 @@ header {
   height: auto;
 }
 
-h1 {
+.content h1 {
   width: 80%;
   display: flex;
   flex-direction: column;
@@ -263,4 +263,169 @@ h1 {
   font-size: 18px;
   color: #a7a4a4;
   align-items: center;
+}
+
+.auth-content {
+  padding-bottom: 60px;
+}
+
+.auth-layout {
+  align-items: stretch;
+  margin-top: 10px;
+}
+
+.auth-info {
+  width: 45%;
+  padding-top: 50px;
+}
+
+.auth-box {
+  width: 45%;
+  padding: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.auth-box-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.auth-box-copy,
+.auth-switch {
+  font-size: 18px;
+  color: #9c9c9e;
+  line-height: 1.6;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.auth-field input {
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  font: inherit;
+  outline: none;
+}
+
+.auth-field input::placeholder {
+  color: #8a8a8d;
+}
+
+.auth-field input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.auth-row,
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-row {
+  justify-content: space-between;
+}
+
+.auth-check {
+  color: #9c9c9e;
+}
+
+.auth-check-wide {
+  align-items: flex-start;
+}
+
+.auth-check input {
+  accent-color: #3b82f6;
+}
+
+.auth-link {
+  color: #3f73e4;
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  color: #ffffff;
+}
+
+.auth-submit {
+  width: 100%;
+  border: 0;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #6d6d70;
+  font-size: 14px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.auth-ghost-btn {
+  width: 100%;
+  padding: 16px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  font-size: 18px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.auth-ghost-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 980px) {
+  .auth-layout {
+    flex-direction: column;
+  }
+
+  .auth-info,
+  .auth-box {
+    width: 100%;
+  }
+
+  .auth-info {
+    padding-top: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .auth-box {
+    padding: 24px;
+  }
 }
