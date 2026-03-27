@@ -1,0 +1,255 @@
+.auth-page .content {
+  padding-top: 120px;
+  padding-bottom: 28px;
+  justify-content: center;
+}
+
+.auth-layout {
+  width: min(980px, 88%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.auth-info {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0;
+}
+
+.auth-info .description-text1,
+.auth-info .description-text2,
+.auth-info .description-text3 {
+  padding-left: 0;
+}
+
+.auth-info .description-text1 {
+  font-size: 26px;
+  padding-bottom: 14px;
+}
+
+.auth-info .description-text2 {
+  font-size: 42px;
+  padding-bottom: 16px;
+}
+
+.auth-info .description-text3 {
+  max-width: 430px;
+  margin-bottom: 14px;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.auth-box {
+  width: min(100%, 400px);
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.25);
+  position: relative;
+  z-index: 1;
+}
+
+.auth-box-register {
+  width: min(100%, 420px);
+  padding: 24px 28px;
+}
+
+.auth-box-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.auth-box .description-text1 {
+  font-size: 26px;
+  padding-left: 0;
+  padding-bottom: 0;
+}
+
+.auth-box-copy,
+.auth-switch {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #9c9c9e;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.auth-field input {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  font: inherit;
+  outline: none;
+}
+
+.auth-field input::placeholder {
+  color: #8a8a8d;
+}
+
+.auth-field input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.auth-row,
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-row {
+  justify-content: space-between;
+}
+
+.auth-check {
+  color: #9c9c9e;
+  font-size: 13px;
+}
+
+.auth-check-wide {
+  align-items: flex-start;
+}
+
+.auth-check input {
+  accent-color: #3b82f6;
+}
+
+.auth-link {
+  color: #3f73e4;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.auth-link:hover {
+  color: #ffffff;
+}
+
+.auth-submit {
+  width: 100%;
+  border: 0;
+  font-size: 20px;
+  padding: 12px 18px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #6d6d70;
+  font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.auth-ghost-btn {
+  width: 100%;
+  padding: 12px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.auth-ghost-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.auth-page .bottom {
+  margin-top: 24px;
+  padding: 24px;
+}
+
+@media (max-width: 1100px) {
+  .auth-layout {
+    width: min(440px, calc(100% - 32px));
+  }
+
+  .auth-info {
+    display: none;
+  }
+
+  .auth-box,
+  .auth-box-register {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .auth-page .content {
+    padding-top: 98px;
+  }
+
+  .auth-page .navbar {
+    width: 94%;
+  }
+
+  .auth-box,
+  .auth-box-register {
+    padding: 20px 18px;
+    border-radius: 20px;
+  }
+
+  .auth-box .description-text1 {
+    font-size: 22px;
+  }
+
+  .auth-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .auth-page .bottom {
+    margin-top: 16px;
+    padding: 20px 14px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-layout {
+    width: min(calc(100% - 20px), 420px);
+  }
+
+  .auth-page .nav-right {
+    gap: 10px;
+  }
+
+  .auth-page .login-btn,
+  .auth-page .signup-btn {
+    font-size: 15px;
+  }
+
+  .auth-page .signup-btn {
+    padding: 7px 12px;
+  }
+}
