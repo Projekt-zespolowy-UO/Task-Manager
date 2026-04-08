@@ -1,7 +1,7 @@
-package com.project.backend.Enum;
+    package com.project.backend.Enum;
 
-public enum Priority {
-    LOW,
-    MEDIUM,
-    HIGH
-}
+    public enum Priority {
+        LOW,
+        MEDIUM,
+        HIGH
+    }
