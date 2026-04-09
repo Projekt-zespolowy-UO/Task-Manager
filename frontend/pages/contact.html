@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Task manager</title>
+    <title>Planix | Kontakt</title>
     <link rel="stylesheet" href="../styles/index.css" />
+    <link rel="stylesheet" href="../styles/info.css" />
   </head>
   <body>
     <header>
@@ -39,41 +40,36 @@
 
     <div class="overlay" id="overlay"></div>
 
-    <div class="content">
-      <h1>
-        <span class="header-text1">Oprogramowanie do zarządzania pracą</span>
-        <span class="header-text2">Zadania &amp; dokumenty</span>
-        <span class="header-text3">
-          Wystarczająco potężne, by zastąpić narzędzia dla firm
-        </span>
-        <span class="header-text3">
-          Wystarczająco proste, by zastąpić arkusze kalkulacyjne
-        </span>
-      </h1>
-
-      <div class="content-buttons">
-        <button class="download-btn">Pobierz aplikację</button>
-        <button class="start-btn">Zaczynamy</button>
-      </div>
-
-      <div class="description">
-        <div class="description-container">
-          <span class="description-text1">Najlepsze kompleksowe rozwiązanie</span>
-          <span class="description-text2">Uprość pracę i zrób więcej.</span>
-          <span class="description-text3">
-            Planix to potężne narzędzie do zarządzania projektami, które pomaga
-            Twojemu zespołowi osiągać więcej, przy mniejszym przełączaniu się
-            między zadaniami. Tak jakbyś miał jedno narzędzie do wszystkiego.
-          </span>
+    <main class="content info-page-content">
+      <section class="info-section info-page-panel">
+        <div class="section-heading">
+          <span class="section-eyebrow">Kontakt</span>
+          <h1 class="section-title">Skontaktuj się z nami</h1>
+          <p class="section-text">
+            Jeśli chcesz wdrożyć Planix w swojej firmie albo po prostu masz
+            pytanie, odezwij się jednym z poniższych kanałów.
+          </p>
         </div>
 
-        <img
-          class="description-img"
-          src="../images/virtualWindows.png"
-          alt="Podgląd aplikacji Planix"
-        />
-      </div>
-    </div>
+        <div class="contact-grid">
+          <article class="contact-card">
+            <span class="contact-label">E-mail</span>
+            <a href="mailto:contact@planix.app">contact@planix.app</a>
+            <p>Najlepszy wybór do pytań o ofertę, wdrożenie i współpracę.</p>
+          </article>
+          <article class="contact-card">
+            <span class="contact-label">Telefon</span>
+            <a href="tel:+48123456789">+48 123 456 789</a>
+            <p>Wsparcie dla klientów biznesowych od poniedziałku do piątku.</p>
+          </article>
+          <article class="contact-card">
+            <span class="contact-label">Biuro</span>
+            <p class="contact-main">ul. Prosta 21, Warszawa</p>
+            <p>Spotkania demonstracyjne i konsultacje po wcześniejszym umówieniu.</p>
+          </article>
+        </div>
+      </section>
+    </main>
 
     <div class="bottom">© 2026 Planix. Wszelkie prawa zastrzeżone.</div>
     <script src="../scripts/navigation.js"></script>

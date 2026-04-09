@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Task manager</title>
+    <title>Planix | Informacje</title>
     <link rel="stylesheet" href="../styles/index.css" />
+    <link rel="stylesheet" href="../styles/info.css" />
   </head>
   <body>
     <header>
@@ -39,41 +40,34 @@
 
     <div class="overlay" id="overlay"></div>
 
-    <div class="content">
-      <h1>
-        <span class="header-text1">Oprogramowanie do zarządzania pracą</span>
-        <span class="header-text2">Zadania &amp; dokumenty</span>
-        <span class="header-text3">
-          Wystarczająco potężne, by zastąpić narzędzia dla firm
-        </span>
-        <span class="header-text3">
-          Wystarczająco proste, by zastąpić arkusze kalkulacyjne
-        </span>
-      </h1>
-
-      <div class="content-buttons">
-        <button class="download-btn">Pobierz aplikację</button>
-        <button class="start-btn">Zaczynamy</button>
-      </div>
-
-      <div class="description">
-        <div class="description-container">
-          <span class="description-text1">Najlepsze kompleksowe rozwiązanie</span>
-          <span class="description-text2">Uprość pracę i zrób więcej.</span>
-          <span class="description-text3">
-            Planix to potężne narzędzie do zarządzania projektami, które pomaga
-            Twojemu zespołowi osiągać więcej, przy mniejszym przełączaniu się
-            między zadaniami. Tak jakbyś miał jedno narzędzie do wszystkiego.
-          </span>
+    <main class="content info-page-content">
+      <section class="info-section info-page-panel">
+        <div class="section-heading">
+          <span class="section-eyebrow">Informacje</span>
+          <h1 class="section-title">Czym jest Planix</h1>
+          <p class="section-text">
+            Planix to nowoczesne środowisko do zarządzania zadaniami i
+            dokumentami, stworzone z myślą o zespołach, które chcą pracować
+            szybciej i bardziej przejrzyście.
+          </p>
         </div>
 
-        <img
-          class="description-img"
-          src="../images/virtualWindows.png"
-          alt="Podgląd aplikacji Planix"
-        />
-      </div>
-    </div>
+        <div class="about-grid">
+          <article class="about-card">
+            <strong>1 platforma</strong>
+            <p>Jedno miejsce na projekty, zadania, terminy i wiedzę zespołu.</p>
+          </article>
+          <article class="about-card">
+            <strong>Mniej chaosu</strong>
+            <p>Jasna struktura pracy ogranicza przełączanie się między aplikacjami.</p>
+          </article>
+          <article class="about-card">
+            <strong>Więcej tempa</strong>
+            <p>Zespół szybciej podejmuje decyzje i łatwiej utrzymuje priorytety.</p>
+          </article>
+        </div>
+      </section>
+    </main>
 
     <div class="bottom">© 2026 Planix. Wszelkie prawa zastrzeżone.</div>
     <script src="../scripts/navigation.js"></script>

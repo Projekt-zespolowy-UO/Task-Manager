@@ -1,0 +1,173 @@
+.info-page-content {
+  padding-bottom: 40px;
+}
+
+.info-page-content h1.section-title {
+  width: auto;
+  display: block;
+}
+
+.info-page-panel {
+  width: 80%;
+  margin-top: 30px;
+  padding: 40px 42px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  box-sizing: border-box;
+}
+
+.section-heading {
+  max-width: 760px;
+  margin-bottom: 28px;
+}
+
+.section-eyebrow {
+  display: inline-flex;
+  margin-bottom: 16px;
+  color: #3f73e4;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.section-title {
+  margin: 0 0 16px;
+  font-size: 42px;
+  line-height: 1.1;
+}
+
+.section-text {
+  margin: 0;
+  color: #9c9c9e;
+  font-size: 20px;
+  line-height: 1.6;
+}
+
+.feature-grid,
+.contact-grid,
+.about-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.feature-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.contact-grid,
+.about-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.feature-card,
+.contact-card,
+.faq-item,
+.about-card {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  background: rgba(6, 11, 22, 0.45);
+  padding: 24px;
+}
+
+.feature-card h3,
+.faq-item h3 {
+  margin: 0 0 14px;
+  font-size: 24px;
+}
+
+.feature-card p,
+.contact-card p,
+.faq-item p,
+.about-card p {
+  margin: 0;
+  color: #a7a4a4;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.contact-grid {
+  align-items: stretch;
+}
+
+.contact-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contact-label {
+  color: #3f73e4;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.contact-card a,
+.contact-main {
+  color: white;
+  font-size: 22px;
+  text-decoration: none;
+}
+
+.faq-list {
+  display: grid;
+  gap: 18px;
+}
+
+.about-card strong {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 26px;
+}
+
+@media (max-width: 1200px) {
+  .info-page-panel {
+    width: calc(100% - 48px);
+    padding: 32px 24px;
+  }
+
+  .section-title {
+    font-size: 32px;
+  }
+
+  .section-text {
+    font-size: 17px;
+  }
+
+  .feature-grid,
+  .contact-grid,
+  .about-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .info-page-panel {
+    width: calc(100% - 28px);
+    padding: 24px 18px;
+  }
+
+  .section-title {
+    font-size: 26px;
+  }
+
+  .section-eyebrow {
+    font-size: 16px;
+  }
+
+  .section-text,
+  .feature-card p,
+  .contact-card p,
+  .faq-item p,
+  .about-card p {
+    font-size: 15px;
+  }
+
+  .feature-card h3,
+  .faq-item h3,
+  .about-card strong,
+  .contact-card a,
+  .contact-main {
+    font-size: 20px;
+  }
+}
