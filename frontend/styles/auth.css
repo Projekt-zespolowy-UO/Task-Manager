@@ -1,6 +1,11 @@
+.auth-page::before,
+.auth-page::after {
+  display: none;
+}
+
 .auth-page .content {
   padding-top: 120px;
-  padding-bottom: 28px;
+  padding-bottom: 20px;
   justify-content: center;
 }
 
@@ -252,4 +257,8 @@
   .auth-page .signup-btn {
     padding: 7px 12px;
   }
+}
+
+.auth-page .bottom {
+  display: none;
 }
