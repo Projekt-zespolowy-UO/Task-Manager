@@ -12,19 +12,15 @@
       <div class="navbar">
         <div class="nav-left">
           <a href="./index.html">
-            <img
-              class="navbar-logo-shape"
-              src="../images/logo.png"
-              alt="logo"
-            />
+            <img class="navbar-logo-shape" src="../images/logo.png" alt="logo" />
           </a>
         </div>
 
         <div class="nav-center">
-          <a class="navbar-link" href="./index.html">Funkcje</a>
-          <a class="navbar-link" href="./index.html">Kontakt</a>
-          <a class="navbar-link" href="./index.html">Pomoc</a>
-          <a class="navbar-link" href="./index.html">Informacje</a>
+          <a class="navbar-link" href="./features.html">Funkcje</a>
+          <a class="navbar-link" href="./contact.html">Kontakt</a>
+          <a class="navbar-link" href="./help.html">Pomoc</a>
+          <a class="navbar-link" href="./info.html">Informacje</a>
         </div>
 
         <div class="nav-right">
@@ -44,8 +40,8 @@
             bez przełączania się między wieloma narzędziami.
           </span>
           <span class="description-text3">
-            Rejestracja poniżej jest wizualna, więc pola i przycisk nie wysyłają
-            żadnych danych.
+            Po poprawnej rejestracji od razu zapiszemy token i zalogujemy Cię do
+            aplikacji.
           </span>
         </div>
 
@@ -57,33 +53,67 @@
             </span>
           </div>
 
-          <form class="auth-form" action="#">
-            <label class="auth-field">
+          <form class="auth-form" id="registration-form" action="#">
+            <label class="auth-field" for="registration-name">
               <span>Imię i nazwisko</span>
-              <input type="text" placeholder="Jan Kowalski" />
+              <input
+                id="registration-name"
+                name="userName"
+                type="text"
+                placeholder="Jan Kowalski"
+                autocomplete="name"
+                required
+              />
             </label>
 
-            <label class="auth-field">
+            <label class="auth-field" for="registration-email">
               <span>Adres e-mail</span>
-              <input type="email" placeholder="jan@email.com" />
+              <input
+                id="registration-email"
+                name="email"
+                type="email"
+                placeholder="jan@email.com"
+                autocomplete="email"
+                required
+              />
             </label>
 
-            <label class="auth-field">
+            <label class="auth-field" for="registration-password">
               <span>Hasło</span>
-              <input type="password" placeholder="Utwórz hasło" />
+              <input
+                id="registration-password"
+                name="password"
+                type="password"
+                placeholder="Utwórz hasło"
+                autocomplete="new-password"
+                required
+              />
             </label>
 
-            <label class="auth-field">
+            <label class="auth-field" for="registration-password-confirm">
               <span>Powtórz hasło</span>
-              <input type="password" placeholder="Powtórz hasło" />
+              <input
+                id="registration-password-confirm"
+                name="passwordConfirm"
+                type="password"
+                placeholder="Powtórz hasło"
+                autocomplete="new-password"
+                required
+              />
             </label>
 
-            <label class="auth-check auth-check-wide">
-              <input type="checkbox" />
+            <label class="auth-check auth-check-wide" for="registration-terms">
+              <input id="registration-terms" name="terms" type="checkbox" />
               <span>Akceptuję regulamin i politykę prywatności.</span>
             </label>
 
-            <button class="start-btn auth-submit" type="submit">
+            <p class="auth-feedback" id="registration-feedback" aria-live="polite"></p>
+
+            <button
+              class="start-btn auth-submit"
+              id="registration-submit"
+              type="submit"
+            >
               Utwórz konto
             </button>
           </form>
@@ -97,5 +127,6 @@
     </main>
 
     <div class="bottom">© 2026 Planix. Wszelkie prawa zastrzeżone.</div>
+    <script src="../scripts/auth.js"></script>
   </body>
 </html>

@@ -12,19 +12,15 @@
       <div class="navbar">
         <div class="nav-left">
           <a href="./index.html">
-            <img
-              class="navbar-logo-shape"
-              src="../images/logo.png"
-              alt="logo"
-            />
+            <img class="navbar-logo-shape" src="../images/logo.png" alt="logo" />
           </a>
         </div>
 
         <div class="nav-center">
-          <a class="navbar-link" href="./index.html">Funkcje</a>
-          <a class="navbar-link" href="./index.html">Kontakt</a>
-          <a class="navbar-link" href="./index.html">Pomoc</a>
-          <a class="navbar-link" href="./index.html">Informacje</a>
+          <a class="navbar-link" href="./features.html">Funkcje</a>
+          <a class="navbar-link" href="./contact.html">Kontakt</a>
+          <a class="navbar-link" href="./help.html">Pomoc</a>
+          <a class="navbar-link" href="./info.html">Informacje</a>
         </div>
 
         <div class="nav-right">
@@ -44,39 +40,53 @@
             projektów w jednym miejscu.
           </span>
           <span class="description-text3">
-            To makieta frontendu, więc formularz służy tylko do prezentacji
-            interfejsu.
+            Po poprawnym logowaniu zapiszemy token i przeniesiemy Cię z powrotem
+            do aplikacji.
           </span>
         </div>
 
         <section class="auth-box">
           <div class="auth-box-header">
             <span class="description-text1">Witaj ponownie</span>
-            <span class="auth-box-copy"
-              >Zaloguj się do swojego konta Planix.</span
-            >
+            <span class="auth-box-copy">Zaloguj się do swojego konta Planix.</span>
           </div>
 
-          <form class="auth-form" action="#">
-            <label class="auth-field">
+          <form class="auth-form" id="login-form" action="#">
+            <label class="auth-field" for="login-email">
               <span>Adres e-mail</span>
-              <input type="email" placeholder="twoj@email.com" />
+              <input
+                id="login-email"
+                name="email"
+                type="email"
+                placeholder="twoj@email.com"
+                autocomplete="email"
+                required
+              />
             </label>
 
-            <label class="auth-field">
+            <label class="auth-field" for="login-password">
               <span>Hasło</span>
-              <input type="password" placeholder="Wpisz hasło" />
+              <input
+                id="login-password"
+                name="password"
+                type="password"
+                placeholder="Wpisz hasło"
+                autocomplete="current-password"
+                required
+              />
             </label>
 
             <div class="auth-row">
-              <label class="auth-check">
-                <input type="checkbox" />
+              <label class="auth-check" for="remember-me">
+                <input id="remember-me" name="rememberMe" type="checkbox" />
                 <span>Zapamiętaj mnie</span>
               </label>
               <a class="auth-link" href="#">Nie pamiętasz hasła?</a>
             </div>
 
-            <button class="start-btn auth-submit" type="submit">
+            <p class="auth-feedback" id="login-feedback" aria-live="polite"></p>
+
+            <button class="start-btn auth-submit" id="login-submit" type="submit">
               Zaloguj się
             </button>
 
@@ -84,7 +94,7 @@
               <span>lub</span>
             </div>
 
-            <button class="auth-ghost-btn" type="button">
+            <button class="auth-ghost-btn" type="button" disabled>
               Kontynuuj z Google
             </button>
           </form>
@@ -98,5 +108,6 @@
     </main>
 
     <div class="bottom">© 2026 Planix. Wszelkie prawa zastrzeżone.</div>
+    <script src="../scripts/auth.js"></script>
   </body>
 </html>
