@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.backend.Dto.JwtAuthDto;
+import com.project.backend.Dto.PasswordResetConfirmDto;
+import com.project.backend.Dto.PasswordResetRequestDto;
 import com.project.backend.Dto.UserDto;
 import com.project.backend.Service.AuthService;
 
@@ -27,6 +29,18 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<JwtAuthDto> login(@RequestBody UserDto userDto) {
         return ResponseEntity.ok(authService.authenticate(userDto));
+    }
+
+    @PostMapping("/password-reset/request")
+    public ResponseEntity<Void> requestPasswordReset(@RequestBody PasswordResetRequestDto request) {
+        authService.sendPasswordResetCode(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<Void> confirmPasswordReset(@RequestBody PasswordResetConfirmDto request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/refresh")

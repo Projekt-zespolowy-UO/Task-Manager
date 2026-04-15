@@ -21,7 +21,6 @@ import com.project.backend.Dto.UserDto;
 import com.project.backend.Model.UserModel;
 import com.project.backend.Repository.UserRepository;
 import com.project.backend.Security.JwtService;
-import com.project.backend.Service.MailService;
 
 import lombok.RequiredArgsConstructor;
 

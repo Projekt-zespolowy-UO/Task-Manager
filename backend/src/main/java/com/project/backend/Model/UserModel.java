@@ -24,6 +24,4 @@ public class UserModel {
     private String email;
     @Column(name="password", nullable=false)
     private String password;
-
-    
 }
