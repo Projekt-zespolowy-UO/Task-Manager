@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles/userPage.css" />
+    <title>Task manager</title>
+  </head>
+  <body>
+    <header>
+      <div class="navbar">
+        <div class="nav-left">
+          <a href=""
+            ><img class="navbar-logo-shape" src="../images/logo.png" alt="logo"
+          /></a>
+          <img
+            src="../images/profile-img.png"
+            alt="profile picture"
+            class="profile-picture"
+          />
+          <h1>Vitalichok Lucyk</h1>
+        </div>
+        <div class="nav-center">
+          <div class="search-input-div">
+            <p class="search-icon">🔍</p>
+            <input
+              class="search-input"
+              type="filtr"
+              class="search-bar"
+              placeholder="Szukaj zadań..."
+            />
+            <button class="clear-search">x</button>
+          </div>
+        </div>
+        <div class="nav-right">
+          <a class="signup-btn" href="registration.html">Wyloguj się</a>
+          <div class="menu-toggle" id="menu-toggle">☰</div>
+        </div>
+      </div>
+    </header>
+    <div class="mobile-menu" id="mobile-menu">
+      <a class="navbar-link" href="">Funkcje</a>
+      <a class="navbar-link" href="">Kontakt</a>
+      <a class="navbar-link" href="">Pomoc</a>
+      <a class="navbar-link" href="">Informacje</a>
+    </div>
+    <div class="task-container">
+      <div class="task-panel"></div>
+      <button class="add-panel-btn">Dodaj panel</button>
+    </div>
+    <!-- Modal do dodawania panelu -->
+    <div id="panel-modal" class="modal">
+      <div class="modal-content">
+        <h3>Nazwij nowy panel</h3>
+        <input type="text" id="panel-name-input" placeholder="Wpisz nazwę..." />
+        <div class="modal-actions">
+          <button id="cancel-btn">Anuluj</button>
+          <button id="save-btn">Dodaj</button>
+        </div>
+      </div>
+    </div>
+    <div class="overlay" id="overlay"></div>
+    <script src="../scripts/navigation.js"></script>
+    <script src="../scripts/addPanel.js"></script>
+  </body>
+</html>
