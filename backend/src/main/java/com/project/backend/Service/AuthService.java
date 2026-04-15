@@ -79,9 +79,9 @@ public class AuthService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with this email not found"));
 
         String code = generateResetCodeForEmail(user.getEmail(), Instant.now());
-        String emailText = "Ваш код для скидання пароля: " + code
-                + "\nТермін дії коду: 15 хвилин.";
-        mailService.sendEmail(user.getEmail(), "Скидання пароля", emailText);
+        String emailText = "Your password reset code: " + code
+                + "\nThis code is valid for 15 minutes.";
+        mailService.sendEmail(user.getEmail(), "Password Reset", emailText);
     }
 
     @Transactional
