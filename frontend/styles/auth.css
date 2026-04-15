@@ -156,6 +156,12 @@
   padding: 12px 18px;
 }
 
+.auth-submit:disabled,
+.auth-ghost-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .auth-divider {
   display: flex;
   align-items: center;
@@ -186,6 +192,25 @@
 
 .auth-ghost-btn:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.auth-feedback {
+  min-height: 22px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.auth-feedback.is-error {
+  color: #fca5a5;
+}
+
+.auth-feedback.is-success {
+  color: #86efac;
+}
+
+.auth-feedback.is-loading {
+  color: #93c5fd;
 }
 
 .auth-page .bottom {
