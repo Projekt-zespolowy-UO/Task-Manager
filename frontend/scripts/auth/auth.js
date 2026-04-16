@@ -86,7 +86,7 @@ function normalizeEmail(value) {
 }
 
 function redirectToHome() {
-  window.location.href = "./index.html";
+  window.location.href = "./userPage.html";
 }
 
 function setupLogin() {
@@ -145,7 +145,9 @@ function setupRegistration() {
   const userNameInput = document.getElementById("registration-name");
   const emailInput = document.getElementById("registration-email");
   const passwordInput = document.getElementById("registration-password");
-  const confirmPasswordInput = document.getElementById("registration-password-confirm");
+  const confirmPasswordInput = document.getElementById(
+    "registration-password-confirm",
+  );
   const termsInput = document.getElementById("registration-terms");
   const feedback = document.getElementById("registration-feedback");
   const submitButton = document.getElementById("registration-submit");
@@ -164,7 +166,11 @@ function setupRegistration() {
     }
 
     if (password.length < 6) {
-      setFeedback(feedback, "Hasło musi mieć co najmniej 6 znaków.", "is-error");
+      setFeedback(
+        feedback,
+        "Hasło musi mieć co najmniej 6 znaków.",
+        "is-error",
+      );
       return;
     }
 
@@ -174,7 +180,11 @@ function setupRegistration() {
     }
 
     if (!termsInput.checked) {
-      setFeedback(feedback, "Zaakceptuj regulamin i politykę prywatności.", "is-error");
+      setFeedback(
+        feedback,
+        "Zaakceptuj regulamin i politykę prywatności.",
+        "is-error",
+      );
       return;
     }
 

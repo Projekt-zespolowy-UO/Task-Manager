@@ -12,7 +12,11 @@
       <div class="navbar">
         <div class="nav-left">
           <a href="./index.html">
-            <img class="navbar-logo-shape" src="../images/logo.png" alt="logo" />
+            <img
+              class="navbar-logo-shape"
+              src="../images/logo.png"
+              alt="logo"
+            />
           </a>
         </div>
 
@@ -23,12 +27,12 @@
           <a class="navbar-link" href="./info.html">Informacje</a>
         </div>
 
-      <div class="nav-right">
-        <a class="login-btn" href="./login.html">Zaloguj się</a>
-        <a class="signup-btn" href="./registration.html">Zarejestruj się</a>
+        <div class="nav-right">
+          <a class="login-btn" href="./login.html">Zaloguj się</a>
+          <a class="signup-btn" href="./registration.html">Zarejestruj się</a>
+        </div>
       </div>
-    </div>
-  </header>
+    </header>
 
     <main class="content auth-content">
       <section class="auth-layout">
@@ -45,13 +49,10 @@
           </span>
         </div>
 
-      <section class="auth-box auth-box-register">
-        <div class="auth-box-header">
-          <span class="description-text1">Utwórz konto</span>
-          <span class="auth-box-copy">
-            Rozpocznij pracę z Planix w kilku prostych polach.
-          </span>
-        </div>
+        <section class="auth-box auth-box-register">
+          <div class="auth-box-header">
+            <span class="description-text1">Utwórz konto</span>
+          </div>
 
           <form class="auth-form" id="registration-form" action="#">
             <label class="auth-field" for="registration-name">
@@ -107,7 +108,11 @@
               <span>Akceptuję regulamin i politykę prywatności.</span>
             </label>
 
-            <p class="auth-feedback" id="registration-feedback" aria-live="polite"></p>
+            <p
+              class="auth-feedback"
+              id="registration-feedback"
+              aria-live="polite"
+            ></p>
 
             <button
               class="start-btn auth-submit"
@@ -118,15 +123,15 @@
             </button>
           </form>
 
-        <p class="auth-switch">
-          Masz już konto?
-          <a class="auth-link" href="./login.html">Przejdź do logowania</a>
-        </p>
+          <p class="auth-switch">
+            Masz już konto?
+            <a class="auth-link" href="./login.html">Przejdź do logowania</a>
+          </p>
+        </section>
       </section>
-    </section>
-  </main>
+    </main>
 
     <div class="bottom">© 2026 Planix. Wszelkie prawa zastrzeżone.</div>
-    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/auth/auth.js"></script>
   </body>
 </html>

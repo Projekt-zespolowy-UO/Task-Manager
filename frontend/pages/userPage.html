@@ -18,7 +18,7 @@
             alt="profile picture"
             class="profile-picture"
           />
-          <h1>Vitalichok Lucyk</h1>
+          <h1>Jan Kowalski</h1>
         </div>
         <div class="nav-center">
           <div class="search-input-div">
@@ -45,22 +45,48 @@
       <a class="navbar-link" href="">Informacje</a>
     </div>
     <div class="task-container">
-      <div class="task-panel"></div>
       <button class="add-panel-btn">Dodaj panel</button>
     </div>
     <!-- Modal do dodawania panelu -->
-    <div id="panel-modal" class="modal">
-      <div class="modal-content">
-        <h3>Nazwij nowy panel</h3>
-        <input type="text" id="panel-name-input" placeholder="Wpisz nazwę..." />
-        <div class="modal-actions">
-          <button id="cancel-btn">Anuluj</button>
-          <button id="save-btn">Dodaj</button>
-        </div>
-      </div>
+   <div id="panel-modal" class="modal">
+  <div class="modal-content">
+    <h3>Nazwij nowy panel</h3>
+    <input type="text" id="panel-name-input" placeholder="Wpisz nazwę..." />
+    <div class="modal-actions">
+      <button id="cancel-btn">Anuluj</button>
+      <button id="save-btn">Dodaj</button>
+    </div>
+  </div>
+</div>
+<!-- modal do dodawania zadania --> 
+<div id="task-modal" class="modal">
+  <div class="modal-content">
+    <h3>Dodaj nowe zadanie</h3>
+    <input type="text" id="task-name-input" placeholder="Wpisz nazwę..." />
+    <textarea
+      id="task-description-input"
+      placeholder="Wpisz opis zadania..."
+      rows="5"
+    ></textarea>
+    <div class="modal-actions">
+      <button id="task-cancel-btn">Anuluj</button>
+      <button id="task-save-btn">Dodaj</button>
+    </div>
+  </div>
+</div>
+<!-- modal do szczegółów zadania -->
+<div id="task-details-modal" class="modal">
+  <div class="modal-content">
+    <h3 id="task-details-title">Szczegóły zadania</h3>
+    <div id="task-details-description" class="task-details-description"></div>
+    <div class="modal-actions">
+      <button id="task-details-close-btn">Zamknij</button>
+    </div>
+  </div>
+</div>
     </div>
     <div class="overlay" id="overlay"></div>
-    <script src="../scripts/navigation.js"></script>
-    <script src="../scripts/addPanel.js"></script>
+    <script src="../scripts/pages/navigation.js"></script>
+    <script src="../scripts/userPage/addPanel.js"></script>
   </body>
 </html>
