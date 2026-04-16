@@ -12,6 +12,7 @@ import com.project.backend.Dto.JwtAuthDto;
 import com.project.backend.Dto.UserDto;
 import com.project.backend.Service.RegistrationService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -23,7 +24,7 @@ public class RegistrationController {
     private final RegistrationService registrationService;
 
     @PostMapping("/registration")
-    public ResponseEntity<JwtAuthDto> register(@RequestBody UserDto userDto) {
+    public ResponseEntity<JwtAuthDto> register(@Valid @RequestBody UserDto userDto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(registrationService.register(userDto));
     }
 }

@@ -16,6 +16,7 @@ import com.project.backend.Dto.PasswordResetRequestDto;
 import com.project.backend.Dto.UserDto;
 import com.project.backend.Service.AuthService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -27,18 +28,18 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<JwtAuthDto> login(@RequestBody UserDto userDto) {
+    public ResponseEntity<JwtAuthDto> login(@Valid @RequestBody UserDto userDto) {
         return ResponseEntity.ok(authService.authenticate(userDto));
     }
 
     @PostMapping("/password-reset/request")
-    public ResponseEntity<Void> requestPasswordReset(@RequestBody PasswordResetRequestDto request) {
+    public ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody PasswordResetRequestDto request) {
         authService.sendPasswordResetCode(request);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/password-reset/confirm")
-    public ResponseEntity<Void> confirmPasswordReset(@RequestBody PasswordResetConfirmDto request) {
+    public ResponseEntity<Void> confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmDto request) {
         authService.resetPassword(request);
         return ResponseEntity.ok().build();
     }
