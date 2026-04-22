@@ -36,13 +36,17 @@ public class UserService {
             UserSettingsUpdateDto request) {
 
         UserModel user = requireAuthenticatedUser(userDetails);
+        validateUpdateRequest(request);
+        String updatedUserName = resolveUpdatedUserName(user, request);
+        String updatedEmail = resolveUpdatedEmail(user, request);
 
         if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
+            validateCurrentPassword(user, request.getCurrentPassword());
             user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
         }
 
-        user.setUserName(request.getUserName().trim());
-        user.setEmail(request.getEmail().trim());
+        user.setUserName(updatedUserName);
+        user.setEmail(updatedEmail);
         userRepository.save(user);
 
         JwtAuthDto tokens = jwtService.generateToken(user.getEmail());
@@ -51,6 +55,75 @@ public class UserService {
                 user.getEmail(),
                 tokens.getToken(),
                 tokens.getRefreshToken());
+    }
+
+    private void validateUpdateRequest(UserSettingsUpdateDto request) {
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
+        }
+
+        boolean wantsUserNameChange = request.getUserName() != null;
+        boolean wantsEmailChange = request.getEmail() != null;
+        boolean wantsPasswordChange = request.getNewPassword() != null && !request.getNewPassword().isBlank();
+
+        if (!wantsUserNameChange && !wantsEmailChange && !wantsPasswordChange) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No settings changes were provided");
+        }
+
+        if (wantsUserNameChange && request.getUserName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username cannot be blank");
+        }
+
+        if (wantsEmailChange) {
+            if (request.getEmail().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email cannot be blank");
+            }
+
+            if (!request.getEmail().contains("@")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email format is invalid");
+            }
+        }
+
+        if (wantsPasswordChange) {
+            if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Current password is required to change password");
+            }
+
+            if (request.getNewPassword().trim().length() < 6) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Password must contain at least 6 characters");
+            }
+        }
+    }
+
+    private String resolveUpdatedUserName(UserModel user, UserSettingsUpdateDto request) {
+        if (request.getUserName() == null) {
+            return user.getUserName();
+        }
+
+        return request.getUserName().trim();
+    }
+
+    private String resolveUpdatedEmail(UserModel user, UserSettingsUpdateDto request) {
+        if (request.getEmail() == null) {
+            return user.getEmail();
+        }
+
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        if (userRepository.existsByEmailAndIdNot(normalizedEmail, user.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "User with this email already exists");
+        }
+
+        return normalizedEmail;
+    }
+
+    private void validateCurrentPassword(UserModel user, String currentPassword) {
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current password is incorrect");
+        }
     }
 
     
