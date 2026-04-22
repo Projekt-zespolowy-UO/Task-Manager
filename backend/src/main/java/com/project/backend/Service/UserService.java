@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.project.backend.Dto.JwtAuthDto;
+import com.project.backend.Dto.UserDto;
 import com.project.backend.Dto.UserSettingsResponseDto;
 import com.project.backend.Dto.UserSettingsUpdateDto;
 import com.project.backend.Dto.UserSettingsUpdateResponseDto;
@@ -29,6 +30,16 @@ public class UserService {
     public UserSettingsResponseDto getCurrentUserSettings(CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
         return new UserSettingsResponseDto(user.getUserName(), user.getEmail());
+    }
+
+    @Transactional(readOnly = true)
+    public UserDto getCurrentUserMe(CustomUserDetails userDetails) {
+        UserModel user = requireAuthenticatedUser(userDetails);
+        UserDto userDto = new UserDto();
+        userDto.setId(user.getId());
+        userDto.setUserName(user.getUserName());
+        userDto.setEmail(user.getEmail());
+        return userDto;
     }
 
     public UserSettingsUpdateResponseDto updateCurrentUserSettings(

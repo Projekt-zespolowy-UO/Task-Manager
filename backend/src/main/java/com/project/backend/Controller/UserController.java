@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.backend.Dto.UserDto;
 import com.project.backend.Dto.UserSettingsResponseDto;
 import com.project.backend.Dto.UserSettingsUpdateDto;
 import com.project.backend.Dto.UserSettingsUpdateResponseDto;
@@ -24,6 +25,11 @@ import lombok.RequiredArgsConstructor;
 public class UserController {
 
     private final UserService userService;
+
+    @GetMapping("/userdata")
+    public ResponseEntity<UserDto> getMe(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(userService.getCurrentUserMe(userDetails));
+    }
 
     @GetMapping("/settings")
     public ResponseEntity<UserSettingsResponseDto> getSettings(
