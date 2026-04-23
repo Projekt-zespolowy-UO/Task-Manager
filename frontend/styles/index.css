@@ -45,12 +45,8 @@ body::after {
   inset: 0;
   z-index: -2;
 
-  background: linear-gradient(
-      to bottom,
-      #0b0b0b 0%,
-      #0b0b0b 140px,
-      transparent 300px
-    ),
+  background:
+    linear-gradient(to bottom, #0b0b0b 0%, #0b0b0b 140px, transparent 300px),
     linear-gradient(to top, #0b0b0b 0%, #0b0b0b 140px, transparent 300px),
     radial-gradient(circle at center, transparent 20%, #0b0b0b 80%);
 }
@@ -122,6 +118,10 @@ header {
 }
 
 .navbar-link:hover {
+  color: white;
+}
+
+.navbar-link.active {
   color: white;
 }
 
