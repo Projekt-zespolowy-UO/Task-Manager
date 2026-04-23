@@ -38,6 +38,7 @@ function storeAuth(authDto, email, rememberMe = true) {
   const targetStorage = rememberMe ? localStorage : sessionStorage;
 
   clearStoredAuth();
+
   if (authDto?.token) {
     targetStorage.setItem(TOKEN_KEY, authDto.token);
   }
@@ -72,8 +73,8 @@ async function postJson(path, payload) {
       typeof data === "object" && data?.message
         ? data.message
         : typeof data === "string" && data
-          ? data
-          : `Request failed with status ${response.status}`;
+        ? data
+        : `Request failed with status ${response.status}`;
 
     throw new Error(message);
   }
@@ -83,6 +84,16 @@ async function postJson(path, payload) {
 
 function normalizeEmail(value) {
   return value.trim().toLowerCase();
+}
+
+function getConnectionErrorMessage() {
+  return "Nie udało się połączyć z backendem. Sprawdź, czy serwer działa na localhost:8080.";
+}
+
+function getErrorMessage(error) {
+  return error instanceof TypeError
+    ? getConnectionErrorMessage()
+    : error.message;
 }
 
 function redirectToHome() {
@@ -123,12 +134,7 @@ function setupLogin() {
       setFeedback(feedback, "Logowanie zakończone sukcesem.", "is-success");
       window.setTimeout(redirectToHome, 500);
     } catch (error) {
-      const message =
-        error instanceof TypeError
-          ? "Nie udało się połączyć z backendem. Sprawdź, czy serwer działa na localhost:8080."
-          : error.message;
-
-      setFeedback(feedback, message, "is-error");
+      setFeedback(feedback, getErrorMessage(error), "is-error");
     } finally {
       setButtonState(submitButton, false, "Logowanie...", "Zaloguj się");
     }
@@ -146,7 +152,7 @@ function setupRegistration() {
   const emailInput = document.getElementById("registration-email");
   const passwordInput = document.getElementById("registration-password");
   const confirmPasswordInput = document.getElementById(
-    "registration-password-confirm",
+    "registration-password-confirm"
   );
   const termsInput = document.getElementById("registration-terms");
   const feedback = document.getElementById("registration-feedback");
@@ -169,7 +175,7 @@ function setupRegistration() {
       setFeedback(
         feedback,
         "Hasło musi mieć co najmniej 6 znaków.",
-        "is-error",
+        "is-error"
       );
       return;
     }
@@ -183,7 +189,7 @@ function setupRegistration() {
       setFeedback(
         feedback,
         "Zaakceptuj regulamin i politykę prywatności.",
-        "is-error",
+        "is-error"
       );
       return;
     }
@@ -202,17 +208,133 @@ function setupRegistration() {
       setFeedback(feedback, "Konto zostało utworzone.", "is-success");
       window.setTimeout(redirectToHome, 500);
     } catch (error) {
-      const message =
-        error instanceof TypeError
-          ? "Nie udało się połączyć z backendem. Sprawdź, czy serwer działa na localhost:8080."
-          : error.message;
-
-      setFeedback(feedback, message, "is-error");
+      setFeedback(feedback, getErrorMessage(error), "is-error");
     } finally {
       setButtonState(submitButton, false, "Tworzenie...", "Utwórz konto");
     }
   });
 }
 
+function setupPasswordReset() {
+  const requestForm = document.getElementById("password-reset-request-form");
+  const confirmForm = document.getElementById("password-reset-confirm-form");
+
+  if (!requestForm || !confirmForm) {
+    return;
+  }
+
+  const emailInput = document.getElementById("reset-email");
+  const requestBox = document.getElementById("password-reset-request-box");
+  const confirmBox = document.getElementById("password-reset-confirm-box");
+  const backButton = document.getElementById("reset-back-button");
+  const codeInput = document.getElementById("reset-code");
+  const newPasswordInput = document.getElementById("reset-new-password");
+  const confirmPasswordInput = document.getElementById(
+    "reset-new-password-confirm"
+  );
+  const requestFeedback = document.getElementById("reset-request-feedback");
+  const confirmFeedback = document.getElementById("reset-confirm-feedback");
+  const requestButton = document.getElementById("reset-request-submit");
+  const confirmButton = document.getElementById("reset-confirm-submit");
+
+  requestForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const email = normalizeEmail(emailInput.value);
+
+    if (!email) {
+      setFeedback(requestFeedback, "Wpisz adres e-mail.", "is-error");
+      return;
+    }
+
+    setFeedback(
+      requestFeedback,
+      "Wysyłanie kodu resetującego...",
+      "is-loading"
+    );
+    setButtonState(requestButton, true, "Wysyłanie...", "Wyślij kod");
+
+    try {
+      await postJson("/auth/password-reset/request", { email });
+      setFeedback(
+        requestFeedback,
+        "Kod został wysłany. Sprawdź swoją skrzynkę e-mail.",
+        "is-success"
+      );
+      requestBox.classList.add("auth-step-hidden");
+      confirmBox.classList.remove("auth-step-hidden");
+      codeInput.focus();
+    } catch (error) {
+      setFeedback(requestFeedback, getErrorMessage(error), "is-error");
+    } finally {
+      setButtonState(requestButton, false, "Wysyłanie...", "Wyślij kod");
+    }
+  });
+
+  confirmForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const email = normalizeEmail(emailInput.value);
+    const code = codeInput.value.trim();
+    const newPassword = newPasswordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
+
+    if (!email || !code || !newPassword || !confirmPassword) {
+      setFeedback(
+        confirmFeedback,
+        "Uzupełnij e-mail, kod i nowe hasło.",
+        "is-error"
+      );
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setFeedback(
+        confirmFeedback,
+        "Hasło musi mieć co najmniej 6 znaków.",
+        "is-error"
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setFeedback(confirmFeedback, "Hasła muszą być identyczne.", "is-error");
+      return;
+    }
+
+    setFeedback(confirmFeedback, "Aktualizowanie hasła...", "is-loading");
+    setButtonState(confirmButton, true, "Aktualizowanie...", "Zmień hasło");
+
+    try {
+      await postJson("/auth/password-reset/confirm", {
+        email,
+        code,
+        newPassword,
+      });
+
+      setFeedback(
+        confirmFeedback,
+        "Hasło zostało zmienione. Za chwilę wrócisz do logowania.",
+        "is-success"
+      );
+      window.setTimeout(() => {
+        window.location.href = "./login.html";
+      }, 900);
+    } catch (error) {
+      setFeedback(confirmFeedback, getErrorMessage(error), "is-error");
+    } finally {
+      setButtonState(confirmButton, false, "Aktualizowanie...", "Zmień hasło");
+    }
+  });
+
+  backButton.addEventListener("click", () => {
+    confirmBox.classList.add("auth-step-hidden");
+    requestBox.classList.remove("auth-step-hidden");
+    setFeedback(confirmFeedback, "");
+    emailInput.focus();
+  });
+}
+
 setupLogin();
 setupRegistration();
+setupPasswordReset();
