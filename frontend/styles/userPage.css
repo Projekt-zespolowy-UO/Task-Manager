@@ -151,6 +151,7 @@ header {
   text-decoration: none;
   font-size: 18px;
   cursor: pointer;
+  border: none;
 }
 
 .signup-btn:hover {
@@ -200,6 +201,22 @@ header {
 
 .mobile-menu.active {
   transform: translateX(0);
+}
+
+.mobile-menu-button {
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mobile-menu-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mobile-menu-disabled:hover {
+  color: rgb(170, 171, 172);
 }
 
 .overlay {
