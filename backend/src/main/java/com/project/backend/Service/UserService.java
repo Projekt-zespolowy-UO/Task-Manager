@@ -42,11 +42,12 @@ public class UserService {
         return userDto;
     }
 
+    @Transactional
     public UserSettingsUpdateResponseDto updateCurrentUserSettings(
             CustomUserDetails userDetails,
             UserSettingsUpdateDto request) {
 
-        UserModel user = requireAuthenticatedUser(userDetails);
+        UserModel user = requirePersistedAuthenticatedUser(userDetails);
         validateUpdateRequest(request);
         String updatedUserName = resolveUpdatedUserName(user, request);
         String updatedEmail = resolveUpdatedEmail(user, request);
@@ -139,6 +140,14 @@ public class UserService {
 
     
     private UserModel requireAuthenticatedUser(CustomUserDetails userDetails) {
+        if (userDetails == null || userDetails.user() == null || userDetails.user().getId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user is required");
+        }
+
+        return userDetails.user();
+    }
+
+    private UserModel requirePersistedAuthenticatedUser(CustomUserDetails userDetails) {
         if (userDetails == null || userDetails.user() == null || userDetails.user().getId() == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user is required");
         }
