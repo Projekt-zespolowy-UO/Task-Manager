@@ -40,7 +40,7 @@ public class AuthService {
     public JwtAuthDto authenticate(UserDto userDto) {
         validateCredentials(userDto);
 
-        UserModel user = userRepository.findByEmail(userDto.getEmail().trim())
+        UserModel user = userRepository.findByEmail(userDto.getEmail().trim().toLowerCase())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED,
                         "Invalid email or password"));
@@ -58,11 +58,10 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token is required");
         }
 
-        if (!jwtService.validateToken(refreshToken)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token is invalid or expired");
-        }
-
-        String email = jwtService.getEmailFromToken(refreshToken);
+        String email = jwtService.getEmailFromValidToken(refreshToken)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Refresh token is invalid or expired"));
         userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED,
@@ -71,7 +70,6 @@ public class AuthService {
         return jwtService.refreshBaseToken(email, refreshToken);
     }
 
-    @Transactional
     public void sendPasswordResetCode(PasswordResetRequestDto request) {
         validateEmail(request.getEmail());
 

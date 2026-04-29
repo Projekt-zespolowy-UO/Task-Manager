@@ -3,12 +3,14 @@ package com.project.backend.Security;
 import java.sql.Date;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Optional;
 
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import com.project.backend.Dto.JwtAuthDto;
 
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +30,14 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secretKey;
 
+    private SecretKey signingKey;
+
+    @PostConstruct
+    void initSigningKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        signingKey = Keys.hmacShaKeyFor(keyBytes);
+    }
+
     public JwtAuthDto generateToken(String email) {
         JwtAuthDto dto = new JwtAuthDto();
         dto.setToken(generateJwtToken(email));
@@ -43,12 +53,21 @@ public class JwtService {
     }
 
     public boolean validateToken(String token) {
+        return parseClaimsSafely(token).isPresent();
+    }
+
+    public Optional<String> getEmailFromValidToken(String token) {
+        return parseClaimsSafely(token)
+                .map(Claims::getSubject);
+    }
+
+    public String getEmailFromToken(String token) {
+        return parseClaims(token).getSubject();
+    }
+
+    private Optional<Claims> parseClaimsSafely(String token) {
         try {
-            Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
-                    .build()
-                    .parseClaimsJws(token);
-            return true;
+            return Optional.of(parseClaims(token));
         } catch (ExpiredJwtException e) {
             LOGGER.error("Token expired", e);
         } catch (UnsupportedJwtException e) {
@@ -61,16 +80,7 @@ public class JwtService {
             LOGGER.error("Invalid token", e);
         }
 
-        return false;
-    }
-
-    public String getEmailFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        return claims.getSubject();
+        return Optional.empty();
     }
 
     private String generateJwtToken(String email) {
@@ -93,9 +103,16 @@ public class JwtService {
                 .compact();
     }
 
+    private Claims parseClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(signingKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return signingKey;
     }
 }
 
