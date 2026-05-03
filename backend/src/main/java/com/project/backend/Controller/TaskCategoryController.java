@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.project.backend.Model.TaskCategoryModel;
+import com.project.backend.Dto.TaskCategoryDto;
 import com.project.backend.Service.TaskCategoryService;
 
 @RestController
@@ -24,19 +24,19 @@ public class TaskCategoryController {
     private TaskCategoryService taskCategoryService;
 
     @GetMapping
-    public List<TaskCategoryModel> getAllCategories() {
+    public List<TaskCategoryDto> getAllCategories() {
         return taskCategoryService.getAllCategories();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TaskCategoryModel> getCategoryById(@PathVariable Long id) {
-        Optional<TaskCategoryModel> category = taskCategoryService.getCategoryById(id);
+    public ResponseEntity<TaskCategoryDto> getCategoryById(@PathVariable Long id) {
+        Optional<TaskCategoryDto> category = taskCategoryService.getCategoryById(id);
         return category.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public TaskCategoryModel createCategory(@RequestBody TaskCategoryModel category) {
-        return taskCategoryService.createCategory(category);
+    public TaskCategoryDto createCategory(@RequestBody TaskCategoryDto categoryDto) {
+        return taskCategoryService.createCategory(categoryDto);
     }
 
     @DeleteMapping("/{id}")
