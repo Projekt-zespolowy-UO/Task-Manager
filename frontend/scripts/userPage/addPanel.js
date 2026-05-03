@@ -1,4 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const CATEGORIES_API_PATH = "/categories";
+  const TASKS_API_PATH = "/tasks";
+
   const addBtn = document.querySelector(".add-panel-btn");
   const panelModal = document.getElementById("panel-modal");
   const taskModal = document.getElementById("task-modal");
@@ -30,10 +33,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let activeTasksContainer = null;
   let activeOptionsMenu = null;
-  let activeTaskElement = null;
+
+  // -------------------------
+  // HELPERS
+  // -------------------------
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
 
   function normalizeSearchValue(value) {
     return value.trim().toLowerCase();
+  }
+
+  function getPanelIdFromElement(panelElement) {
+    return panelElement?.dataset.categoryId || panelElement?.dataset.panelId;
+  }
+
+  function getTaskIdFromElement(taskElement) {
+    return taskElement?.dataset.taskId;
   }
 
   function applyTaskSearch() {
@@ -46,9 +69,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       tasks.forEach((task) => {
         const title =
-          task.querySelector(".task-item-title")?.textContent.toLowerCase() || "";
+          task.querySelector(".task-item-title")?.textContent.toLowerCase() ||
+          "";
         const description = (task.dataset.description || "").toLowerCase();
-        const matches = query === "" || title.includes(query) || description.includes(query);
+
+        const matches =
+          query === "" || title.includes(query) || description.includes(query);
 
         task.classList.toggle("task-item-hidden", !matches);
 
@@ -62,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // MODALE
+  // MODALS
   // -------------------------
 
   const openPanelModal = () => {
@@ -115,33 +141,42 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // -------------------------
-  // TASK
+  // TASK ELEMENT
   // -------------------------
 
-  function createTaskElement(taskName, taskDescription) {
-    const task = document.createElement("div");
-    task.className = "task-item";
-    task.dataset.description = taskDescription || "";
+  function createTaskElement(task) {
+    const taskElement = document.createElement("div");
+    taskElement.className = "task-item";
 
-    task.innerHTML = `
+    const taskId = task.id;
+    const taskName = task.title || task.name || "Task";
+    const taskDescription = task.description || "";
+
+    if (taskId !== undefined && taskId !== null) {
+      taskElement.dataset.taskId = taskId;
+    }
+
+    taskElement.dataset.description = taskDescription;
+
+    taskElement.innerHTML = `
       <div class="task-item-content">
-        <span class="task-item-title">${taskName}</span>
+        <span class="task-item-title">${escapeHtml(taskName)}</span>
         <div class="task-actions">
-          <button class="task-options-btn">⋮</button>
+          <button class="task-options-btn" type="button">⋮</button>
           <div class="task-options-menu" style="display:none;">
-            <button class="task-expand-btn">Rozwiń</button>
-            <button class="task-move-btn">Przerzuć do kategorii</button>
-            <button class="task-delete-btn">Usuń</button>
+            <button class="task-expand-btn" type="button">Rozwiń</button>
+            <button class="task-move-btn" type="button">Przerzuć do kategorii</button>
+            <button class="task-delete-btn" type="button">Usuń</button>
           </div>
         </div>
       </div>
     `;
 
-    const taskOptionsBtn = task.querySelector(".task-options-btn");
-    const taskOptionsMenu = task.querySelector(".task-options-menu");
-    const taskDeleteBtn = task.querySelector(".task-delete-btn");
-    const taskExpandBtn = task.querySelector(".task-expand-btn");
-    const taskMoveBtn = task.querySelector(".task-move-btn");
+    const taskOptionsBtn = taskElement.querySelector(".task-options-btn");
+    const taskOptionsMenu = taskElement.querySelector(".task-options-menu");
+    const taskDeleteBtn = taskElement.querySelector(".task-delete-btn");
+    const taskExpandBtn = taskElement.querySelector(".task-expand-btn");
+    const taskMoveBtn = taskElement.querySelector(".task-move-btn");
 
     taskOptionsBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -154,24 +189,32 @@ document.addEventListener("DOMContentLoaded", () => {
         taskOptionsMenu.style.display === "block" ? "none" : "block";
     });
 
-    taskDeleteBtn.addEventListener("click", () => {
-      task.remove();
+    taskDeleteBtn.addEventListener("click", async () => {
+      // Frontend-only delete for now.
+      // If backend adds DELETE /tasks/{id}, connect it here later.
+      taskElement.remove();
       applyTaskSearch();
     });
 
     taskExpandBtn.addEventListener("click", () => {
-      const title = task.querySelector(".task-item-title").textContent;
-      const description = task.dataset.description;
+      const title = taskElement.querySelector(".task-item-title").textContent;
+      const description = taskElement.dataset.description;
+
       openTaskDetailsModal(title, description);
       taskOptionsMenu.style.display = "none";
     });
 
-    taskMoveBtn.addEventListener("click", () => {
+    taskMoveBtn.addEventListener("click", async () => {
+      // Frontend-only move for now.
+      // If backend adds PUT /tasks/{id}/category or PATCH /tasks/{id}, connect it here later.
+
       const panels = [...document.querySelectorAll(".task-panel")];
+
       const panelNames = panels.map((panel, index) => {
         const title =
           panel.querySelector(".panel-title")?.textContent ||
           `Panel ${index + 1}`;
+
         return `${index + 1}. ${title}`;
       });
 
@@ -197,32 +240,44 @@ document.addEventListener("DOMContentLoaded", () => {
       const targetPanel = panels[selectedIndex];
       const targetTasksContainer = targetPanel.querySelector(".panel-tasks");
 
-      if (targetTasksContainer && task.parentElement !== targetTasksContainer) {
-        targetTasksContainer.appendChild(task);
+      if (
+        targetTasksContainer &&
+        taskElement.parentElement !== targetTasksContainer
+      ) {
+        targetTasksContainer.appendChild(taskElement);
       }
 
       taskOptionsMenu.style.display = "none";
       applyTaskSearch();
     });
 
-    return task;
+    return taskElement;
   }
 
   // -------------------------
-  // PANEL
+  // PANEL ELEMENT
   // -------------------------
 
-  function createPanelElement(name) {
+  function createPanelElement(panel) {
     const newPanel = document.createElement("div");
     newPanel.className = "task-panel";
+
+    const panelId = panel.id;
+    const panelName = panel.name || panel.title || "Panel";
+
+    if (panelId !== undefined && panelId !== null) {
+      newPanel.dataset.panelId = panelId;
+      newPanel.dataset.categoryId = panelId;
+    }
+
     newPanel.innerHTML = `
       <div class="panel-header">
-        <button class="options-btn">⋮</button>
-        <h3 class="panel-title">${name}</h3>
+        <button class="options-btn" type="button">⋮</button>
+        <h3 class="panel-title">${escapeHtml(panelName)}</h3>
         <div class="options-menu" style="display:none;">
-          <button class="rename-btn">Zmień nazwę</button>
-          <button class="delete-btn">Usuń</button>
-          <button class="add-task-btn">Dodaj zadanie</button>
+          <button class="rename-btn" type="button">Zmień nazwę</button>
+          <button class="delete-btn" type="button">Usuń</button>
+          <button class="add-task-btn" type="button">Dodaj zadanie</button>
         </div>
       </div>
       <div class="panel-tasks"></div>
@@ -230,9 +285,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const optionsBtn = newPanel.querySelector(".options-btn");
     const optionsMenu = newPanel.querySelector(".options-menu");
+    const renameBtn = newPanel.querySelector(".rename-btn");
     const deleteBtn = newPanel.querySelector(".delete-btn");
     const addTaskBtn = newPanel.querySelector(".add-task-btn");
     const tasksContainer = newPanel.querySelector(".panel-tasks");
+    const panelTitle = newPanel.querySelector(".panel-title");
 
     optionsBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -245,7 +302,26 @@ document.addEventListener("DOMContentLoaded", () => {
         optionsMenu.style.display === "block" ? "none" : "block";
     });
 
-    deleteBtn.addEventListener("click", () => {
+    renameBtn.addEventListener("click", () => {
+      // Frontend-only rename for now.
+      // If backend adds PUT /categories/{id}, connect it here later.
+
+      const currentName = panelTitle.textContent;
+      const newName = prompt("Nowa nazwa panelu:", currentName);
+
+      if (!newName || !newName.trim()) {
+        return;
+      }
+
+      panelTitle.textContent = newName.trim();
+      optionsMenu.style.display = "none";
+      applyTaskSearch();
+    });
+
+    deleteBtn.addEventListener("click", async () => {
+      // Frontend-only delete for now.
+      // If backend adds DELETE /categories/{id}, connect it here later.
+
       newPanel.remove();
       applyTaskSearch();
     });
@@ -258,7 +334,75 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // EVENTY
+  // LOAD DATA FROM BACKEND
+  // -------------------------
+
+  async function loadPanelsAndTasks() {
+    try {
+      const panels = await apiRequest(CATEGORIES_API_PATH, {
+        method: "GET",
+      });
+
+      console.log("Loaded panels:", panels);
+
+      if (Array.isArray(panels)) {
+        panels.forEach((panel) => {
+          const panelElement = createPanelElement(panel);
+          container.insertBefore(panelElement, addBtn);
+        });
+      }
+    } catch (error) {
+      console.warn("Could not load panels. Endpoint may not exist yet:", error);
+    }
+
+    try {
+      const tasks = await apiRequest(TASKS_API_PATH, {
+        method: "GET",
+      });
+
+      console.log("Loaded tasks:", tasks);
+
+      if (Array.isArray(tasks)) {
+        tasks.forEach((task) => {
+          const categoryId =
+            task.categoryId ||
+            task.category?.id ||
+            task.panelId ||
+            task.panel?.id;
+
+          if (!categoryId) {
+            console.warn("Task has no categoryId, skipping:", task);
+            return;
+          }
+
+          const panelElement = document.querySelector(
+            `.task-panel[data-category-id="${categoryId}"]`,
+          );
+
+          if (!panelElement) {
+            console.warn("No panel found for task:", task);
+            return;
+          }
+
+          const tasksContainer = panelElement.querySelector(".panel-tasks");
+
+          if (!tasksContainer) {
+            return;
+          }
+
+          const taskElement = createTaskElement(task);
+          tasksContainer.appendChild(taskElement);
+        });
+      }
+    } catch (error) {
+      console.warn("Could not load tasks. Endpoint may not exist yet:", error);
+    }
+
+    applyTaskSearch();
+  }
+
+  // -------------------------
+  // EVENTS
   // -------------------------
 
   if (addBtn) {
@@ -281,8 +425,9 @@ document.addEventListener("DOMContentLoaded", () => {
     overlay.addEventListener("click", closeAllModals);
   }
 
+  // Create panel in backend
   if (saveBtn) {
-    saveBtn.addEventListener("click", () => {
+    saveBtn.addEventListener("click", async () => {
       const name = panelNameInput.value.trim();
 
       if (!name) {
@@ -290,15 +435,37 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const newPanel = createPanelElement(name);
-      container.insertBefore(newPanel, addBtn);
+      saveBtn.disabled = true;
 
-      closeAllModals();
+      try {
+        const savedPanel = await apiRequest(CATEGORIES_API_PATH, {
+          method: "POST",
+          body: JSON.stringify({
+            name,
+          }),
+        });
+
+        console.log("Saved panel:", savedPanel);
+
+        const newPanel = createPanelElement(savedPanel);
+        container.insertBefore(newPanel, addBtn);
+
+        closeAllModals();
+        applyTaskSearch();
+      } catch (error) {
+        console.error("Failed to save panel:", error);
+        alert(
+          "Nie udało się zapisać panelu w bazie. Sprawdź, czy backend ma endpoint POST /categories.",
+        );
+      } finally {
+        saveBtn.disabled = false;
+      }
     });
   }
 
+  // Create task in backend
   if (taskSaveBtn) {
-    taskSaveBtn.addEventListener("click", () => {
+    taskSaveBtn.addEventListener("click", async () => {
       const taskName = taskNameInput.value.trim();
       const taskDescription = taskDescriptionInput.value.trim();
 
@@ -306,15 +473,45 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const taskElement = createTaskElement(taskName, taskDescription);
-      activeTasksContainer.appendChild(taskElement);
+      const panelElement = activeTasksContainer.closest(".task-panel");
+      const categoryId = getPanelIdFromElement(panelElement);
 
-      if (activeOptionsMenu) {
-        activeOptionsMenu.style.display = "none";
+      if (!categoryId) {
+        alert("Nie znaleziono ID panelu. Panel musi być zapisany w bazie.");
+        return;
       }
 
-      closeAllModals();
-      applyTaskSearch();
+      taskSaveBtn.disabled = true;
+
+      try {
+        const savedTask = await apiRequest(TASKS_API_PATH, {
+          method: "POST",
+          body: JSON.stringify({
+            title: taskName,
+            description: taskDescription,
+            categoryId: Number(categoryId),
+          }),
+        });
+
+        console.log("Saved task:", savedTask);
+
+        const taskElement = createTaskElement(savedTask);
+        activeTasksContainer.appendChild(taskElement);
+
+        if (activeOptionsMenu) {
+          activeOptionsMenu.style.display = "none";
+        }
+
+        closeAllModals();
+        applyTaskSearch();
+      } catch (error) {
+        console.error("Failed to save task:", error);
+        alert(
+          "Nie udało się zapisać zadania w bazie. Sprawdź, czy backend przyjmuje title, description i categoryId.",
+        );
+      } finally {
+        taskSaveBtn.disabled = false;
+      }
     });
   }
 
@@ -360,5 +557,5 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  applyTaskSearch();
+  loadPanelsAndTasks();
 });
