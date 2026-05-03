@@ -31,8 +31,9 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String token = extractTokenFromRequest(request);
 
-        if (token != null && jwtService.validateToken(token)) {
-            setAuthentication(token);
+        if (token != null) {
+            jwtService.getEmailFromValidToken(token)
+                    .ifPresent(this::setAuthentication);
         }
 
         filterChain.doFilter(request, response);
@@ -47,9 +48,7 @@ public class JwtFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private void setAuthentication(String token) {
-        String email = jwtService.getEmailFromToken(token);
-
+    private void setAuthentication(String email) {
         var userDetails = customUserServiceImpl.loadUserByUsername(email);
 
         var authToken = new UsernamePasswordAuthenticationToken(

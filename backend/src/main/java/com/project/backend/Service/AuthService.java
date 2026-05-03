@@ -1,13 +1,5 @@
 package com.project.backend.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,7 +32,7 @@ public class AuthService {
     public JwtAuthDto authenticate(UserDto userDto) {
         validateCredentials(userDto);
 
-        UserModel user = userRepository.findByEmail(userDto.getEmail().trim())
+        UserModel user = userRepository.findByEmail(userDto.getEmail().trim().toLowerCase())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED,
                         "Invalid email or password"));
@@ -58,11 +50,10 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token is required");
         }
 
-        if (!jwtService.validateToken(refreshToken)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token is invalid or expired");
-        }
-
-        String email = jwtService.getEmailFromToken(refreshToken);
+        String email = jwtService.getEmailFromValidToken(refreshToken)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Refresh token is invalid or expired"));
         userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED,
@@ -71,7 +62,6 @@ public class AuthService {
         return jwtService.refreshBaseToken(email, refreshToken);
     }
 
-    @Transactional
     public void sendPasswordResetCode(PasswordResetRequestDto request) {
         validateEmail(request.getEmail());
 
@@ -99,41 +89,7 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    private String generateResetCodeForEmail(String email, Instant now) {
-        long window = now.getEpochSecond() / 300;
-        return formatCode(buildCode(email, window));
-    }
-
-    private boolean isResetCodeValid(String email, String code, Instant now) {
-        for (int i = 0; i < 3; i++) {
-            long window = now.minus(i * 5, ChronoUnit.MINUTES).getEpochSecond() / 300;
-            if (formatCode(buildCode(email, window)).equals(code)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private byte[] buildCode(String email, long window) {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec keySpec = new SecretKeySpec(passwordResetSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            mac.init(keySpec);
-            return mac.doFinal((email + ":" + window).getBytes(StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to generate reset code", e);
-        }
-    }
-
-    private String formatCode(byte[] hash) {
-        int offset = hash[hash.length - 1] & 0x0F;
-        int binary = ((hash[offset] & 0x7F) << 24)
-                | ((hash[offset + 1] & 0xFF) << 16)
-                | ((hash[offset + 2] & 0xFF) << 8)
-                | (hash[offset + 3] & 0xFF);
-        int code = Math.abs(binary % 1_000_000);
-        return String.format("%06d", code);
-    }
+    
 
     private void validatePasswordResetRequest(PasswordResetConfirmDto request) {
         if (request == null) {

@@ -5,30 +5,19 @@ import java.time.LocalDate;
 import com.project.backend.Enum.Priority;
 import com.project.backend.Enum.Status;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
 
 @Getter
-@Setter
-public class TaskCreateDto {
-
-    @NotBlank
-    @Size(max = 255)
+@AllArgsConstructor
+public class TaskResponseDto {
+    private Long id;
     private String title;
-
-    @Size(max = 5000)
     private String description;
-
-    @NotNull
     private Status status;
-
-    @NotNull
     private Priority priority;
     private LocalDate deadline;
-
-    @NotNull
     private Long categoryId;
+    private String categoryName;
+    private Long userId;
 }
