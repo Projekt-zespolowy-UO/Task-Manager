@@ -402,6 +402,14 @@ header {
   padding: 10px 12px;
 }
 
+.task-item-hidden {
+  display: none;
+}
+
+.task-panel-hidden {
+  display: none;
+}
+
 .task-item-content {
   display: flex;
   justify-content: space-between;

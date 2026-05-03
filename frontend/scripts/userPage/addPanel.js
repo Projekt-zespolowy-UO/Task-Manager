@@ -14,6 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const taskDetailsCloseBtn = document.getElementById("task-details-close-btn");
 
   const container = document.querySelector(".task-container");
+  const searchInput = document.querySelector(".search-input");
+  const clearSearchButton = document.querySelector(".clear-search");
 
   const panelNameInput = document.getElementById("panel-name-input");
   const taskNameInput = document.getElementById("task-name-input");
@@ -29,6 +31,35 @@ document.addEventListener("DOMContentLoaded", () => {
   let activeTasksContainer = null;
   let activeOptionsMenu = null;
   let activeTaskElement = null;
+
+  function normalizeSearchValue(value) {
+    return value.trim().toLowerCase();
+  }
+
+  function applyTaskSearch() {
+    const query = normalizeSearchValue(searchInput?.value || "");
+    const panels = container.querySelectorAll(".task-panel");
+
+    panels.forEach((panel) => {
+      const tasks = panel.querySelectorAll(".task-item");
+      let hasVisibleTask = query === "";
+
+      tasks.forEach((task) => {
+        const title =
+          task.querySelector(".task-item-title")?.textContent.toLowerCase() || "";
+        const description = (task.dataset.description || "").toLowerCase();
+        const matches = query === "" || title.includes(query) || description.includes(query);
+
+        task.classList.toggle("task-item-hidden", !matches);
+
+        if (matches) {
+          hasVisibleTask = true;
+        }
+      });
+
+      panel.classList.toggle("task-panel-hidden", !hasVisibleTask);
+    });
+  }
 
   // -------------------------
   // MODALE
@@ -125,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     taskDeleteBtn.addEventListener("click", () => {
       task.remove();
+      applyTaskSearch();
     });
 
     taskExpandBtn.addEventListener("click", () => {
@@ -170,6 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       taskOptionsMenu.style.display = "none";
+      applyTaskSearch();
     });
 
     return task;
@@ -214,6 +247,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     deleteBtn.addEventListener("click", () => {
       newPanel.remove();
+      applyTaskSearch();
     });
 
     addTaskBtn.addEventListener("click", () => {
@@ -280,6 +314,23 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       closeAllModals();
+      applyTaskSearch();
+    });
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener("input", applyTaskSearch);
+  }
+
+  if (clearSearchButton) {
+    clearSearchButton.addEventListener("click", () => {
+      if (!searchInput) {
+        return;
+      }
+
+      searchInput.value = "";
+      searchInput.focus();
+      applyTaskSearch();
     });
   }
 
@@ -308,4 +359,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  applyTaskSearch();
 });
