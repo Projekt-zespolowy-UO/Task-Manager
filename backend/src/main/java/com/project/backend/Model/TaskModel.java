@@ -1,10 +1,12 @@
 package com.project.backend.Model;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import com.project.backend.Enum.Priority;
 import com.project.backend.Enum.Status;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -34,6 +36,9 @@ public class TaskModel {
     @Enumerated(EnumType.STRING)
     private Priority priority;
     private LocalDate deadline;
+
+    @Column(name = "due_notification_sent_at")
+    private LocalDateTime dueNotificationSentAt;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
