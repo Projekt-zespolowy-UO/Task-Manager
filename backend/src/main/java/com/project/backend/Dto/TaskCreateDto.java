@@ -22,10 +22,8 @@ public class TaskCreateDto {
     @Size(max = 5000)
     private String description;
 
-    @NotNull
     private Status status;
 
-    @NotNull
     private Priority priority;
     private LocalDate deadline;
 

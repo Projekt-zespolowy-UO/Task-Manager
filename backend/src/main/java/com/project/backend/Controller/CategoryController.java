@@ -9,31 +9,31 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.project.backend.Dto.TaskCreateDto;
-import com.project.backend.Dto.TaskResponseDto;
+import com.project.backend.Dto.CategoryCreateDto;
+import com.project.backend.Dto.CategoryResponseDto;
 import com.project.backend.Security.CustomUserDetails;
-import com.project.backend.Service.TaskService;
+import com.project.backend.Service.CategoryService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/tasks")
+@RequestMapping("/categories")
 @RequiredArgsConstructor
-public class TaskController {
+public class CategoryController {
 
-    private final TaskService taskService;
+    private final CategoryService categoryService;
 
     @GetMapping
-    public List<TaskResponseDto> getTasks(
+    public List<CategoryResponseDto> getCategories(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return taskService.getTasks(userDetails);
+        return categoryService.getCategories(userDetails);
     }
 
     @PostMapping
-    public TaskResponseDto createTask(
-            @Valid @RequestBody TaskCreateDto dto,
+    public CategoryResponseDto createCategory(
+            @Valid @RequestBody CategoryCreateDto dto,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return taskService.createTask(dto, userDetails);
+        return categoryService.createCategory(dto, userDetails);
     }
 }

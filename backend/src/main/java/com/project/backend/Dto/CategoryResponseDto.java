@@ -5,9 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class TaskResponseDto {
+public class CategoryResponseDto {
     private Long id;
-    private String title;
-    private String description;
-    private Long categoryId;
+    private String name;
 }
