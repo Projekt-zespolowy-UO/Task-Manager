@@ -7,20 +7,28 @@
     <link rel="stylesheet" href="../styles/userPage.css" />
     <title>Task manager</title>
   </head>
+
   <body>
     <header>
       <div class="navbar">
         <div class="nav-left">
-          <a href=""
-            ><img class="navbar-logo-shape" src="../images/logo.png" alt="logo"
-          /></a>
+          <a href="">
+            <img
+              class="navbar-logo-shape"
+              src="../images/logo.png"
+              alt="logo"
+            />
+          </a>
+
           <img
             src="../images/profile-img.png"
             alt="profile picture"
             class="profile-picture"
           />
+
           <h1 id="user-name">Loading...</h1>
         </div>
+
         <div class="nav-center">
           <div class="search-input-div">
             <p class="search-icon">🔍</p>
@@ -32,31 +40,62 @@
             <button class="clear-search">x</button>
           </div>
         </div>
+
         <div class="nav-right">
           <div class="menu-toggle" id="menu-toggle">&#9776;</div>
         </div>
       </div>
     </header>
+
+    <!-- MOBILE MENU -->
     <div class="mobile-menu" id="mobile-menu">
-      <a class="navbar-link mobile-menu-disabled" href="#" aria-disabled="true"
-        >Profile
-      </a>
-      <a class="navbar-link" href="./userPage.html">Dashboard</a>
-      <a class="navbar-link mobile-menu-disabled" href="#" aria-disabled="true"
-        >Settings
-      </a>
-      <button class="navbar-link mobile-menu-button logout-btn" type="button">
-        Log out
-      </button>
+      <!-- MENU VIEW -->
+      <div id="menu-view">
+        <a class="navbar-link mobile-menu-disabled" href="#">Profile</a>
+
+        <a class="navbar-link" href="./userPage.html">Dashboard</a>
+
+        <a href="#" class="navbar-link" id="notifications-btn">
+          Notifications
+        </a>
+
+        <a class="navbar-link mobile-menu-disabled" href="#">Settings</a>
+
+        <button class="navbar-link mobile-menu-button logout-btn" type="button">
+          Log out
+        </button>
+      </div>
+
+      <!-- NOTIFICATIONS VIEW -->
+      <div id="notifications-view">
+        <div class="notifications-header">
+          <button id="back-to-menu" type="button">← Back</button>
+          <h3>Notifications</h3>
+        </div>
+
+        <div class="notifications-list">
+          <div class="notification-item">
+            Task "Frontend UI" deadline tomorrow
+          </div>
+
+          <div class="notification-item">New comment added</div>
+
+          <div class="notification-item">Task completed successfully</div>
+        </div>
+      </div>
     </div>
+
+    <!-- MAIN CONTENT -->
     <div class="task-container">
       <button class="add-panel-btn">Dodaj panel</button>
     </div>
 
+    <!-- MODALS -->
     <div id="panel-modal" class="modal">
       <div class="modal-content">
         <h3>Nazwij nowy panel</h3>
         <input type="text" id="panel-name-input" placeholder="Wpisz nazwę..." />
+
         <div class="modal-actions">
           <button id="cancel-btn">Anuluj</button>
           <button id="save-btn">Dodaj</button>
@@ -67,12 +106,15 @@
     <div id="task-modal" class="modal">
       <div class="modal-content">
         <h3>Dodaj nowe zadanie</h3>
+
         <input type="text" id="task-name-input" placeholder="Wpisz nazwę..." />
+
         <textarea
           id="task-description-input"
           placeholder="Wpisz opis zadania..."
           rows="5"
         ></textarea>
+
         <div class="modal-actions">
           <button id="task-cancel-btn">Anuluj</button>
           <button id="task-save-btn">Dodaj</button>
@@ -83,16 +125,22 @@
     <div id="task-details-modal" class="modal">
       <div class="modal-content">
         <h3 id="task-details-title">Szczegóły zadania</h3>
+
         <div
           id="task-details-description"
           class="task-details-description"
         ></div>
+
         <div class="modal-actions">
           <button id="task-details-close-btn">Zamknij</button>
         </div>
       </div>
     </div>
+
+    <!-- OVERLAY -->
     <div class="overlay" id="overlay"></div>
+
+    <!-- SCRIPTS -->
     <script src="../scripts/api/apiClient.js"></script>
     <script src="../scripts/pages/navigation.js"></script>
     <script src="../scripts/userPage/userSession.js"></script>
