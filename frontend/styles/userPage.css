@@ -13,7 +13,7 @@ body {
   flex-direction: column;
 }
 
-/*NAVBAR */
+/* NAVBAR */
 
 header {
   width: 100%;
@@ -45,12 +45,7 @@ header {
 }
 
 .search-icon {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
-  padding: 0;
-  cursor: default;
   margin: 0;
   font-size: 21px;
 }
@@ -58,9 +53,6 @@ header {
 .search-input-div:focus-within {
   border-color: rgb(70, 60, 206);
   box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
-}
-
-.search-input-div:focus-within {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
@@ -74,7 +66,7 @@ header {
 
 .clear-search:hover {
   border: white solid 0.5px;
-  color: rgb(255, 253, 253);
+  color: white;
 }
 
 .navbar {
@@ -120,6 +112,9 @@ header {
   text-decoration: none;
   font-weight: 500;
   padding: 8px 20px;
+  width: 100%;
+  display: block;
+  text-align: left;
 }
 
 .navbar-link:hover {
@@ -132,33 +127,8 @@ header {
   gap: 15px;
 }
 
-.login-btn {
-  color: rgb(170, 171, 172);
-  text-decoration: none;
-  font-size: 18px;
-  cursor: pointer;
-}
+/* HAMBURGER */
 
-.login-btn:hover {
-  color: rgb(229, 232, 235);
-}
-
-.signup-btn {
-  background: #2563eb;
-  color: white;
-  padding: 8px 18px;
-  border-radius: 999px;
-  text-decoration: none;
-  font-size: 18px;
-  cursor: pointer;
-  border: none;
-}
-
-.signup-btn:hover {
-  background: #5683e3;
-}
-
-/* hamburger*/
 .menu-toggle {
   display: block;
   font-size: 28px;
@@ -166,6 +136,8 @@ header {
   margin-left: 15px;
   color: white;
 }
+
+/* MOBILE MENU */
 
 .mobile-menu {
   position: fixed;
@@ -176,22 +148,6 @@ header {
   background: #0b0b0b;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px;
-  transform: translateX(100%);
-  transition: 0.3s ease;
-  z-index: 999;
-}
-
-.mobile-menu {
-  top: 80px;
-  right: 0;
-  width: 250px;
-  height: 100%;
-  background: #0b0b0b;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
   padding: 20px;
   transform: translateX(100%);
   transition: 0.3s ease;
@@ -203,11 +159,37 @@ header {
   transform: translateX(0);
 }
 
+/* MENU VIEW */
+
+#menu-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#menu-view .navbar-link {
+  width: 100%;
+  display: block;
+  padding: 12px 10px;
+  text-align: left;
+  color: rgb(170, 171, 172);
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+#menu-view .navbar-link:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .mobile-menu-button {
   border: none;
   background: none;
   text-align: left;
   cursor: pointer;
+  width: 100%;
+  padding: 12px 10px;
+  color: rgb(170, 171, 172);
 }
 
 .mobile-menu-disabled {
@@ -215,9 +197,42 @@ header {
   cursor: not-allowed;
 }
 
-.mobile-menu-disabled:hover {
-  color: rgb(170, 171, 172);
+/* NOTIFICATIONS VIEW */
+
+#notifications-view {
+  display: none;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
 }
+
+.notifications-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notifications-header button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notification-item {
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+/* OVERLAY */
 
 .overlay {
   position: fixed;
@@ -234,6 +249,8 @@ header {
   pointer-events: all;
 }
 
+/* TASK CONTAINER */
+
 .task-container {
   padding-top: 130px;
   display: flex;
@@ -244,10 +261,11 @@ header {
   width: 98%;
   margin: 0 auto;
   overflow-x: auto;
-  white-space: nowrap;
   gap: 20px;
   padding-bottom: 20px;
 }
+
+/* PANEL */
 
 .task-panel {
   display: flex;
@@ -259,43 +277,31 @@ header {
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.04);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
-  position: relative;
-  z-index: 1;
 }
 
-.task-panel h3 {
-  padding: 15px;
-  margin: 0;
-  white-space: normal;
-}
+/* ADD BUTTON */
 
 .add-panel-btn {
   background: none;
   border: none;
   color: rgb(112, 112, 112);
-  padding: 0;
   cursor: pointer;
   font-size: 16px;
-  /* To sprawia, że przycisk nie będzie się rozciągał w pionie */
-  align-self: flex-start;
-  /* żeby nie dotykał ostatniego panelu */
+  white-space: nowrap;
   margin-left: 20px;
   margin-top: 10px;
-  /* Zapobiega zawijaniu tekstu */
-  white-space: nowrap;
 }
 
 .add-panel-btn:hover {
   color: white;
 }
 
+/* MODALS */
+
 .modal {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(0, 0, 0, 0.7);
   z-index: 1000;
   justify-content: center;
@@ -310,123 +316,7 @@ header {
   width: 300px;
 }
 
-.modal-content input {
-  width: 90%;
-  padding: 10px;
-  margin: 10px 0;
-  background: #222;
-  border: 1px solid #444;
-  color: white;
-  border-radius: 5px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.modal-actions button {
-  padding: 8px 16px;
-  cursor: pointer;
-  border-radius: 5px;
-  border: none;
-}
-
-.panel-title {
-  color: white;
-  font-size: 18px;
-  padding: 20px;
-  margin: 0;
-  font-weight: 600;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.panel-header {
-  position: relative;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.options-btn {
-  position: absolute;
-  left: 10px;
-  background: none;
-  border: none;
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.options-menu {
-  position: absolute;
-  top: 30px;
-  left: 10px;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 5px;
-  z-index: 10;
-  width: 120px;
-}
-
-.options-menu button {
-  display: block;
-  width: 100%;
-  background: none;
-  border: none;
-  color: white;
-  padding: 8px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.options-menu button:hover {
-  background: #333;
-}
-
-.panel-tasks {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-}
-
-.task-item {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 10px 12px;
-}
-
-.task-item-hidden {
-  display: none;
-}
-
-.task-panel-hidden {
-  display: none;
-}
-
-.task-item-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.task-item-title {
-  color: white;
-}
-
-.task-delete-btn {
-  border: none;
-  background: transparent;
-  color: #ff6b6b;
-  cursor: pointer;
-}
-
+.modal-content input,
 .modal-content textarea {
   width: 90%;
   padding: 10px;
@@ -435,78 +325,26 @@ header {
   border: 1px solid #444;
   color: white;
   border-radius: 5px;
-  resize: vertical;
-  min-height: 100px;
-  font-family: inherit;
 }
 
-.task-actions {
-  position: relative;
-}
+/* TASK DETAILS */
 
-.task-options-btn {
-  border: none;
-  background: transparent;
-  color: white;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.task-options-menu {
-  position: absolute;
-  top: 28px;
-  right: 0;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 5px;
-  z-index: 20;
-  width: 160px;
-}
-
-.task-options-menu button {
-  display: block;
-  width: 100%;
-  background: none;
-  border: none;
-  color: white;
-  padding: 8px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.task-options-menu button:hover {
-  background: #333;
-}
 .task-details-description {
   background: #1b1b1b;
   border: 1px solid #333;
   border-radius: 10px;
   padding: 16px;
-  color: white;
   min-height: 120px;
   white-space: pre-wrap;
   margin-top: 12px;
   overflow-wrap: break-word;
-  word-break: break-word;
 }
-/* RESPONSIVE  */
 
-/* TABLET */
+/* RESPONSIVE */
+
 @media (max-width: 1200px) {
   .nav-center {
     display: none;
-  }
-  .menu-toggle {
-    display: block;
-  }
-  .menu-toggle {
-    display: block;
-  }
-
-  .menu-toggle {
-    display: block;
-    margin-left: auto;
   }
 
   .navbar {
@@ -514,16 +352,7 @@ header {
   }
 }
 
-/* MOBILE */
 @media (max-width: 768px) {
-  .nav-center {
-    display: none;
-  }
-
-  .menu-toggle {
-    display: block;
-  }
-
   .navbar-logo-shape {
     height: 60px;
   }
