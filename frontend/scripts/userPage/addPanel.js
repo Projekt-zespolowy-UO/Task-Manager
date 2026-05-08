@@ -388,15 +388,11 @@ document.addEventListener("DOMContentLoaded", () => {
       console.warn("Could not load tasks. Endpoint may not exist yet:", error);
     }
 
-    applyTaskSearch();
+    renderDashboard();
   }
 
-  // -------------------------
-  // EVENTS
-  // -------------------------
-
-  if (addBtn) {
-    addBtn.addEventListener("click", openPanelModal);
+  if (addCategoryBtn) {
+    addCategoryBtn.addEventListener("click", openCategoryModal);
   }
 
   if (cancelBtn) {
@@ -415,59 +411,43 @@ document.addEventListener("DOMContentLoaded", () => {
     overlay.addEventListener("click", closeAllModals);
   }
 
-  // Create panel in backend
   if (saveBtn) {
     saveBtn.addEventListener("click", async () => {
       const name = panelNameInput.value.trim();
 
       if (!name) {
-        alert("Wpisz nazwę panelu!");
+        alert("Wpisz nazwe kategorii!");
         return;
       }
 
       saveBtn.disabled = true;
 
       try {
-        const savedPanel = await apiRequest(CATEGORIES_API_PATH, {
+        const savedCategory = await apiRequest(CATEGORIES_API_PATH, {
           method: "POST",
-          body: JSON.stringify({
-            name,
-          }),
+          body: JSON.stringify({ name }),
         });
 
-        console.log("Saved panel:", savedPanel);
-
-        const newPanel = createPanelElement(savedPanel);
-        container.insertBefore(newPanel, addBtn);
-
+        categories.push(savedCategory);
+        activeCategoryId = Number(savedCategory.id);
+        openCategoryMenu = null;
         closeAllModals();
-        applyTaskSearch();
+        renderDashboard();
       } catch (error) {
-        console.error("Failed to save panel:", error);
-        alert(
-          "Nie udało się zapisać panelu w bazie. Sprawdź, czy backend ma endpoint POST /categories.",
-        );
+        console.error("Failed to save category:", error);
+        alert("Nie udalo sie zapisac kategorii w bazie.");
       } finally {
         saveBtn.disabled = false;
       }
     });
   }
 
-  // Create task in backend
   if (taskSaveBtn) {
     taskSaveBtn.addEventListener("click", async () => {
       const taskName = taskNameInput.value.trim();
       const taskDescription = taskDescriptionInput.value.trim();
 
-      if (!taskName || !activeTasksContainer) {
-        return;
-      }
-
-      const panelElement = activeTasksContainer.closest(".task-panel");
-      const categoryId = getPanelIdFromElement(panelElement);
-
-      if (!categoryId) {
-        alert("Nie znaleziono ID panelu. Panel musi być zapisany w bazie.");
+      if (!taskName || !activeCategoryId) {
         return;
       }
 
@@ -479,26 +459,21 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify({
             title: taskName,
             description: taskDescription,
-            categoryId: Number(categoryId),
+            categoryId: Number(activeCategoryId),
           }),
         });
 
-        console.log("Saved task:", savedTask);
+        tasks.push({
+          ...savedTask,
+          status: activeStatusId,
+        });
 
-        const taskElement = createTaskElement(savedTask);
-        activeTasksContainer.appendChild(taskElement);
-
-        if (activeOptionsMenu) {
-          activeOptionsMenu.style.display = "none";
-        }
-
+        activePanelMenuStatusId = null;
         closeAllModals();
-        applyTaskSearch();
+        renderDashboard();
       } catch (error) {
         console.error("Failed to save task:", error);
-        alert(
-          "Nie udało się zapisać zadania w bazie. Sprawdź, czy backend przyjmuje title, description i categoryId.",
-        );
+        alert("Nie udalo sie zapisac zadania w bazie.");
       } finally {
         taskSaveBtn.disabled = false;
       }
@@ -521,31 +496,255 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  document.addEventListener("click", () => {
-    document
-      .querySelectorAll(".options-menu")
-      .forEach((menu) => (menu.style.display = "none"));
+  categoryTabs.addEventListener("click", (event) => {
+    const categoryItem = event.target.closest(".category-tab-item");
 
-    document
-      .querySelectorAll(".task-options-menu")
-      .forEach((menu) => (menu.style.display = "none"));
+    if (!categoryItem) {
+      return;
+    }
+
+    const categoryId = Number(categoryItem.dataset.categoryId);
+    const action = event.target.dataset.action;
+
+    if (action === "select-category") {
+      activeCategoryId = categoryId;
+      openCategoryMenu = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "toggle-category-menu") {
+      event.preventDefault();
+      event.stopPropagation();
+      openCategoryMenu =
+        openCategoryMenu?.id === categoryId
+          ? null
+          : {
+              id: categoryId,
+              ...getCategoryMenuPosition(event.target),
+            };
+      renderCategoryTabs();
+      return;
+    }
+
+    if (action === "rename-category") {
+      const category = categories.find(
+        (item) => Number(item.id) === categoryId
+      );
+      const newName = prompt("Nowa nazwa kategorii:", category?.name || "");
+
+      if (!newName || !newName.trim()) {
+        return;
+      }
+
+      categories = categories.map((item) =>
+        Number(item.id) === categoryId
+          ? { ...item, name: newName.trim() }
+          : item
+      );
+
+      openCategoryMenu = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "delete-category") {
+      const confirmed = confirm("Usunac kategorie razem z jej zadaniami?");
+
+      if (!confirmed) {
+        return;
+      }
+
+      categories = categories.filter((item) => Number(item.id) !== categoryId);
+      tasks = tasks.filter(
+        (task) => Number(getTaskCategoryId(task)) !== categoryId
+      );
+
+      if (Number(activeCategoryId) === categoryId) {
+        activeCategoryId = categories[0]?.id || null;
+      }
+
+      openCategoryMenu = null;
+      renderDashboard();
+    }
+  });
+
+  container.addEventListener("click", (event) => {
+    const action = event.target.dataset.action;
+    const panelElement = event.target.closest(".task-panel");
+    const taskElement = event.target.closest(".task-item");
+
+    if (action === "add-status") {
+      const newStatusName = prompt("Nazwa nowego statusu:");
+
+      if (!newStatusName || !newStatusName.trim()) {
+        return;
+      }
+
+      const trimmedName = newStatusName.trim();
+      statusPanels = [
+        ...statusPanels,
+        { id: createStatusId(trimmedName), name: trimmedName },
+      ];
+      renderDashboard();
+      return;
+    }
+
+    if (!panelElement) {
+      return;
+    }
+
+    const panelStatusId = panelElement.dataset.statusId;
+
+    if (action === "toggle-panel-menu") {
+      event.stopPropagation();
+      activePanelMenuStatusId =
+        activePanelMenuStatusId === panelStatusId ? null : panelStatusId;
+      activeTaskMenuStatusId = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "rename-status") {
+      const panel = statusPanels.find((item) => item.id === panelStatusId);
+      const newName = prompt("Nowa nazwa statusu:", panel?.name || "");
+
+      if (!newName || !newName.trim()) {
+        return;
+      }
+
+      statusPanels = statusPanels.map((item) =>
+        item.id === panelStatusId ? { ...item, name: newName.trim() } : item
+      );
+      activePanelMenuStatusId = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "delete-status") {
+      if (statusPanels.length <= 1) {
+        alert("Musi zostac przynajmniej jeden status.");
+        return;
+      }
+
+      const confirmed = confirm("Usunac status razem z jego zadaniami?");
+
+      if (!confirmed) {
+        return;
+      }
+
+      tasks = tasks.filter(
+        (task) => normalizeStatus(task.status) !== panelStatusId
+      );
+      statusPanels = statusPanels.filter((item) => item.id !== panelStatusId);
+
+      if (activeStatusId === panelStatusId) {
+        activeStatusId = statusPanels[0]?.id || "";
+      }
+
+      activePanelMenuStatusId = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "add-task") {
+      activePanelMenuStatusId = null;
+      openTaskModal(panelStatusId);
+      return;
+    }
+
+    if (!taskElement) {
+      return;
+    }
+
+    const taskId = Number(taskElement.dataset.taskId);
+    const taskStatusId = taskElement.dataset.statusId;
+
+    if (action === "toggle-task-menu") {
+      event.stopPropagation();
+      activeTaskMenuStatusId =
+        activeTaskMenuStatusId === `${taskStatusId}:${taskId}`
+          ? null
+          : `${taskStatusId}:${taskId}`;
+      activePanelMenuStatusId = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "expand-task") {
+      const task = tasks.find((item) => Number(item.id) === taskId);
+      activeTaskMenuStatusId = null;
+      openTaskDetails(task?.title || "Task", task?.description || "");
+      return;
+    }
+
+    if (action === "delete-task") {
+      tasks = tasks.filter((item) => Number(item.id) !== taskId);
+      activeTaskMenuStatusId = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "move-task") {
+      if (statusPanels.length <= 1) {
+        alert("Brak innego statusu do przeniesienia.");
+        return;
+      }
+
+      const currentStatus = normalizeStatus(taskStatusId);
+      const availableStatuses = statusPanels.filter(
+        (panel) => panel.id !== currentStatus
+      );
+      const selectedLabel = prompt(
+        `Wybierz status:\n${availableStatuses
+          .map((panel, index) => `${index + 1}. ${panel.name}`)
+          .join("\n")}`
+      );
+      const selectedStatus = availableStatuses[Number(selectedLabel) - 1];
+
+      if (!selectedStatus) {
+        return;
+      }
+
+      tasks = tasks.map((item) =>
+        Number(item.id) === taskId
+          ? { ...item, status: selectedStatus.id }
+          : item
+      );
+
+      activeTaskMenuStatusId = null;
+      renderDashboard();
+    }
+  });
+
+  document.addEventListener("click", () => {
+    if (
+      openCategoryMenu !== null ||
+      activePanelMenuStatusId !== null ||
+      activeTaskMenuStatusId !== null
+    ) {
+      openCategoryMenu = null;
+      activePanelMenuStatusId = null;
+      activeTaskMenuStatusId = null;
+      renderDashboard();
+    }
   });
 
   if (panelNameInput) {
-    panelNameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
+    panelNameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
         saveBtn.click();
       }
     });
   }
 
   if (taskNameInput) {
-    taskNameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
+    taskNameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
         taskSaveBtn.click();
       }
     });
   }
 
-  loadPanelsAndTasks();
+  loadDashboardData();
 });
