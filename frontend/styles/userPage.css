@@ -13,8 +13,6 @@ body {
   flex-direction: column;
 }
 
-/* NAVBAR */
-
 header {
   width: 100%;
   display: flex;
@@ -22,7 +20,7 @@ header {
   position: fixed;
   background: rgba(11, 11, 11, 0.95);
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  z-index: 2;
+  z-index: 30;
   border: 2px solid rgba(58, 55, 55, 0.551);
   height: 12%;
 }
@@ -127,8 +125,6 @@ header {
   gap: 15px;
 }
 
-/* HAMBURGER */
-
 .menu-toggle {
   display: block;
   font-size: 28px;
@@ -136,8 +132,6 @@ header {
   margin-left: 15px;
   color: white;
 }
-
-/* MOBILE MENU */
 
 .mobile-menu {
   position: fixed;
@@ -158,8 +152,6 @@ header {
 .mobile-menu.active {
   transform: translateX(0);
 }
-
-/* MENU VIEW */
 
 #menu-view {
   display: flex;
@@ -197,8 +189,6 @@ header {
   cursor: not-allowed;
 }
 
-/* NOTIFICATIONS VIEW */
-
 #notifications-view {
   display: none;
   flex-direction: column;
@@ -232,7 +222,102 @@ header {
   border-radius: 8px;
 }
 
-/* OVERLAY */
+.category-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 98%;
+  margin: 0 auto;
+  padding-top: 125px;
+}
+
+.category-tabs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 4px;
+  flex: 1;
+}
+
+.category-tab-item {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.category-tab-shell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.category-tab {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  color: rgb(170, 171, 172);
+  cursor: pointer;
+  font-size: 15px;
+  padding: 9px 16px;
+  white-space: nowrap;
+}
+
+.category-tab:hover,
+.category-tab.active {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.category-options-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: rgb(112, 112, 112);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.category-options-btn:hover {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.category-options-menu {
+  position: fixed;
+  min-width: 160px;
+  z-index: 1001;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.45);
+}
+
+.category-options-menu button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  text-align: left;
+}
+
+.category-options-menu button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
 
 .overlay {
   position: fixed;
@@ -249,23 +334,18 @@ header {
   pointer-events: all;
 }
 
-/* TASK CONTAINER */
-
 .task-container {
-  padding-top: 130px;
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
   align-items: flex-start;
   height: 80vh;
   width: 98%;
-  margin: 0 auto;
+  margin: 18px auto 0;
   overflow-x: auto;
   gap: 20px;
   padding-bottom: 20px;
 }
-
-/* PANEL */
 
 .task-panel {
   display: flex;
@@ -279,24 +359,122 @@ header {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
 }
 
-/* ADD BUTTON */
+.panel-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+}
 
-.add-panel-btn {
+.panel-title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.panel-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 18px 18px;
+  overflow-y: auto;
+}
+
+.options-btn,
+.task-options-btn {
+  background: none;
+  border: none;
+  color: rgb(170, 171, 172);
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.options-btn:hover,
+.task-options-btn:hover {
+  color: white;
+}
+
+.options-menu,
+.task-options-menu {
+  position: absolute;
+  top: 42px;
+  left: 18px;
+  z-index: 10;
+  min-width: 150px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.task-options-menu {
+  left: auto;
+  right: 0;
+}
+
+.options-menu button,
+.task-options-menu button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  text-align: left;
+}
+
+.options-menu button:hover,
+.task-options-menu button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.task-item {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.task-item-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.task-item-title {
+  overflow-wrap: anywhere;
+}
+
+.task-actions {
+  position: relative;
+}
+
+.task-item-hidden,
+.task-panel-hidden {
+  display: none;
+}
+
+.add-panel-btn,
+.add-status-btn {
   background: none;
   border: none;
   color: rgb(112, 112, 112);
   cursor: pointer;
   font-size: 16px;
   white-space: nowrap;
-  margin-left: 20px;
-  margin-top: 10px;
+  flex-shrink: 0;
 }
 
-.add-panel-btn:hover {
+.add-panel-btn:hover,
+.add-status-btn:hover {
   color: white;
 }
 
-/* MODALS */
+.add-status-btn {
+  margin-top: 10px;
+}
 
 .modal {
   display: none;
@@ -327,8 +505,6 @@ header {
   border-radius: 5px;
 }
 
-/* TASK DETAILS */
-
 .task-details-description {
   background: #1b1b1b;
   border: 1px solid #333;
@@ -339,8 +515,6 @@ header {
   margin-top: 12px;
   overflow-wrap: break-word;
 }
-
-/* RESPONSIVE */
 
 @media (max-width: 1200px) {
   .nav-center {
@@ -355,5 +529,10 @@ header {
 @media (max-width: 768px) {
   .navbar-logo-shape {
     height: 60px;
+  }
+
+  .category-bar {
+    padding-top: 100px;
+    align-items: flex-start;
   }
 }
