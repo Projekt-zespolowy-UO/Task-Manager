@@ -13,6 +13,8 @@ import com.project.backend.Model.TaskModel;
 public interface TaskRepository extends JpaRepository<TaskModel, Long> {
     List<TaskModel> findByUser_IdAndCategory_User_IdOrderByIdAsc(Long userId, Long categoryUserId);
 
+    List<TaskModel> findByUser_IdOrderByIdAsc(Long userId);
+
     @Query("""
             SELECT t
             FROM TaskModel t

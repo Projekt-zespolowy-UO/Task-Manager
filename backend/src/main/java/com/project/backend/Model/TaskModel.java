@@ -3,6 +3,7 @@ package com.project.backend.Model;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.project.backend.Enum.Priority;
 import com.project.backend.Enum.Status;
 
@@ -10,6 +11,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -47,5 +49,10 @@ public class TaskModel {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private UserModel user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dashboard_id")
+    @JsonIgnore
+    private Dashboard dashboard;
 
 }

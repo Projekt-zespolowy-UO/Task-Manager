@@ -12,9 +12,11 @@ import com.project.backend.Dto.TaskResponseDto;
 import com.project.backend.Enum.Priority;
 import com.project.backend.Enum.Status;
 import com.project.backend.Model.CategoryModel;
+import com.project.backend.Model.Dashboard;
 import com.project.backend.Model.TaskModel;
 import com.project.backend.Model.UserModel;
 import com.project.backend.Repository.CategoryRepository;
+import com.project.backend.Repository.DashboardRepository;
 import com.project.backend.Repository.TaskRepository;
 import com.project.backend.Security.CustomUserDetails;
 
@@ -26,12 +28,13 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
+    private final DashboardRepository dashboardRepository;
 
     @Transactional(readOnly = true)
     public List<TaskResponseDto> getTasks(CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
 
-        return taskRepository.findByUser_IdAndCategory_User_IdOrderByIdAsc(user.getId(), user.getId())
+        return taskRepository.findByUser_IdOrderByIdAsc(user.getId())
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -42,6 +45,8 @@ public class TaskService {
         UserModel user = requireAuthenticatedUser(userDetails);
         CategoryModel category = categoryRepository.findByIdAndUser_Id(dto.getCategoryId(), user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+        Dashboard dashboard = dashboardRepository.findByIdAndUser_Id(dto.getDashboardId(), user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dashboard not found"));
 
         TaskModel task = new TaskModel();
         task.setTitle(dto.getTitle().trim());
@@ -51,6 +56,7 @@ public class TaskService {
         task.setDeadline(dto.getDeadline());
         task.setCategory(category);
         task.setUser(user);
+        task.setDashboard(dashboard);
 
         return toResponse(taskRepository.save(task));
     }
@@ -70,6 +76,7 @@ public class TaskService {
                 task.getId(),
                 task.getTitle(),
                 task.getDescription(),
-                category != null ? category.getId() : null);
+                category != null ? category.getId() : null,
+                task.getDashboard() != null ? task.getDashboard().getId() : null);
     }
 }

@@ -29,4 +29,7 @@ public class TaskCreateDto {
 
     @NotNull
     private Long categoryId;
+
+    @NotNull
+    private Long dashboardId;
 }

@@ -10,4 +10,5 @@ public class TaskResponseDto {
     private String title;
     private String description;
     private Long categoryId;
+    private Long dashboardId;
 }
