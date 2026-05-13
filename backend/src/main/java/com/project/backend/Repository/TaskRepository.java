@@ -2,8 +2,10 @@ package com.project.backend.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,7 +15,11 @@ import com.project.backend.Model.TaskModel;
 public interface TaskRepository extends JpaRepository<TaskModel, Long> {
     List<TaskModel> findByUser_IdAndCategory_User_IdOrderByIdAsc(Long userId, Long categoryUserId);
 
-    List<TaskModel> findByUser_IdOrderByIdAsc(Long userId);
+    Optional<TaskModel> findByIdAndUser_Id(Long id, Long userId);
+
+    @Modifying
+    @Query("DELETE FROM TaskModel t WHERE t.category.id = :categoryId AND t.user.id = :userId")
+    int deleteByCategoryIdAndUserId(@Param("categoryId") Long categoryId, @Param("userId") Long userId);
 
     @Query("""
             SELECT t
