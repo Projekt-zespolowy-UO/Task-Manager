@@ -1,5 +1,14 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const addBtn = document.querySelector(".add-panel-btn");
+  const CATEGORIES_API_PATH = "/categories";
+  const TASKS_API_PATH = "/tasks";
+
+  const DEFAULT_STATUS_PANELS = [
+    { id: "BACKLOG", name: "Backlog" },
+    { id: "IN_PROGRESS", name: "In progress" },
+    { id: "DONE", name: "Done" },
+  ];
+
+  const addCategoryBtn = document.getElementById("add-category-btn");
   const panelModal = document.getElementById("panel-modal");
   const taskModal = document.getElementById("task-modal");
   const taskDetailsModal = document.getElementById("task-details-modal");
@@ -7,228 +16,383 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const saveBtn = document.getElementById("save-btn");
   const cancelBtn = document.getElementById("cancel-btn");
-
   const taskSaveBtn = document.getElementById("task-save-btn");
   const taskCancelBtn = document.getElementById("task-cancel-btn");
-
   const taskDetailsCloseBtn = document.getElementById("task-details-close-btn");
 
   const container = document.querySelector(".task-container");
+  const categoryTabs = document.getElementById("category-tabs");
+  const searchInput = document.querySelector(".search-input");
+  const clearSearchButton = document.querySelector(".clear-search");
 
   const panelNameInput = document.getElementById("panel-name-input");
   const taskNameInput = document.getElementById("task-name-input");
   const taskDescriptionInput = document.getElementById(
-    "task-description-input",
+    "task-description-input"
   );
 
   const taskDetailsTitle = document.getElementById("task-details-title");
   const taskDetailsDescription = document.getElementById(
-    "task-details-description",
+    "task-details-description"
   );
 
-  let activeTasksContainer = null;
-  let activeOptionsMenu = null;
-  let activeTaskElement = null;
+  let statusPanels = [...DEFAULT_STATUS_PANELS];
+  let activeCategoryId = null;
+  let activeStatusId = statusPanels[0].id;
+  let openCategoryMenu = null;
+  let activeTaskMenuStatusId = null;
+  let activePanelMenuStatusId = null;
+  let taskDetailsOpen = null;
+  let categories = [];
+  let tasks = [];
 
-  // -------------------------
-  // MODALE
-  // -------------------------
+  function escapeHtml(value) {
+    return String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
 
-  const openPanelModal = () => {
+  function normalizeSearchValue(value) {
+    return value.trim().toLowerCase();
+  }
+
+  function normalizeStatus(value) {
+    if (!statusPanels.length) {
+      return "";
+    }
+
+    const normalizedValue = String(value || "")
+      .trim()
+      .toUpperCase();
+    const aliases = {
+      TODO: "BACKLOG",
+      "TO DO": "BACKLOG",
+      INPROGRESS: "IN_PROGRESS",
+      "IN PROGRESS": "IN_PROGRESS",
+    };
+    const statusId = aliases[normalizedValue] || normalizedValue;
+
+    return statusPanels.some((panel) => panel.id === statusId)
+      ? statusId
+      : statusPanels[0].id;
+  }
+
+  function createStatusId(name) {
+    const baseId =
+      String(name || "")
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "") || `STATUS_${Date.now()}`;
+
+    let candidateId = baseId;
+    let suffix = 2;
+
+    while (statusPanels.some((panel) => panel.id === candidateId)) {
+      candidateId = `${baseId}_${suffix}`;
+      suffix += 1;
+    }
+
+    return candidateId;
+  }
+
+  function getTaskCategoryId(task) {
+    return (
+      task.categoryId || task.category?.id || task.panelId || task.panel?.id
+    );
+  }
+
+  function getStatusName(statusId) {
+    return (
+      statusPanels.find((panel) => panel.id === normalizeStatus(statusId))
+        ?.name || "Status"
+    );
+  }
+
+  function getCategoryMenuPosition(triggerElement) {
+    const rect = triggerElement.getBoundingClientRect();
+    const menuWidth = 160;
+    const viewportPadding = 12;
+
+    const left = Math.max(
+      viewportPadding,
+      Math.min(
+        window.innerWidth - menuWidth - viewportPadding,
+        rect.right - menuWidth
+      )
+    );
+    const top = rect.bottom + 8;
+
+    return {
+      left,
+      top,
+    };
+  }
+
+  function applyTaskSearch() {
+    const query = normalizeSearchValue(searchInput?.value || "");
+    const panels = container.querySelectorAll(".task-panel");
+
+    panels.forEach((panel) => {
+      const panelTasks = panel.querySelectorAll(".task-item");
+      let hasVisibleTask = query === "";
+
+      panelTasks.forEach((taskElement) => {
+        const title =
+          taskElement
+            .querySelector(".task-item-title")
+            ?.textContent.toLowerCase() || "";
+        const description = (
+          taskElement.dataset.description || ""
+        ).toLowerCase();
+        const matches =
+          query === "" || title.includes(query) || description.includes(query);
+
+        taskElement.classList.toggle("task-item-hidden", !matches);
+
+        if (matches) {
+          hasVisibleTask = true;
+        }
+      });
+
+      panel.classList.toggle("task-panel-hidden", !hasVisibleTask);
+    });
+  }
+
+  function openCategoryModal() {
     panelModal.style.display = "flex";
     overlay.classList.add("active");
     panelNameInput.value = "";
     panelNameInput.focus();
-  };
+  }
 
-  const closePanelModal = () => {
+  function closeCategoryModal() {
     panelModal.style.display = "none";
     panelNameInput.value = "";
-  };
+  }
 
-  const openTaskModal = (tasksContainer, optionsMenu) => {
-    activeTasksContainer = tasksContainer;
-    activeOptionsMenu = optionsMenu;
-
+  function openTaskModal(statusId) {
+    activeStatusId = normalizeStatus(statusId);
     taskModal.style.display = "flex";
     overlay.classList.add("active");
     taskNameInput.value = "";
     taskDescriptionInput.value = "";
     taskNameInput.focus();
-  };
+  }
 
-  const closeTaskModal = () => {
+  function closeTaskModal() {
     taskModal.style.display = "none";
     taskNameInput.value = "";
     taskDescriptionInput.value = "";
-    activeTasksContainer = null;
-    activeOptionsMenu = null;
-  };
+    activeStatusId = statusPanels[0]?.id || "";
+  }
 
-  const openTaskDetailsModal = (title, description) => {
+  function openTaskDetails(title, description) {
+    taskDetailsOpen = { title, description };
     taskDetailsTitle.textContent = title;
     taskDetailsDescription.textContent = description || "Brak opisu.";
     taskDetailsModal.style.display = "flex";
     overlay.classList.add("active");
-  };
+  }
 
-  const closeTaskDetailsModal = () => {
+  function closeTaskDetails() {
+    taskDetailsOpen = null;
     taskDetailsModal.style.display = "none";
-  };
+  }
 
-  const closeAllModals = () => {
-    closePanelModal();
+  function closeAllModals() {
+    closeCategoryModal();
     closeTaskModal();
-    closeTaskDetailsModal();
+    closeTaskDetails();
     overlay.classList.remove("active");
-  };
+  }
 
-  // -------------------------
-  // TASK
-  // -------------------------
+  function renderCategoryTabs() {
+    categoryTabs.innerHTML = categories
+      .map((category) => {
+        const isActive = Number(category.id) === Number(activeCategoryId);
+        const isMenuOpen = Number(category.id) === Number(openCategoryMenu?.id);
+        const menuStyle = isMenuOpen
+          ? `display:block; left:${openCategoryMenu.left}px; top:${openCategoryMenu.top}px;`
+          : "display:none;";
 
-  function createTaskElement(taskName, taskDescription) {
-    const task = document.createElement("div");
-    task.className = "task-item";
-    task.dataset.description = taskDescription || "";
+        return `
+          <div class="category-tab-item" data-category-id="${category.id}">
+            <div class="category-tab-shell">
+              <button
+                class="category-tab${isActive ? " active" : ""}"
+                type="button"
+                data-action="select-category"
+              >
+                ${escapeHtml(category.name || "Kategoria")}
+              </button>
+              <button
+                class="category-options-btn"
+                type="button"
+                data-action="toggle-category-menu"
+                aria-label="Ustawienia kategorii"
+              >
+                &vellip;
+              </button>
+            </div>
+            <div
+              class="category-options-menu"
+              style="${menuStyle}"
+            >
+              <button type="button" data-action="rename-category">
+                Zmien nazwe
+              </button>
+              <button type="button" data-action="delete-category">
+                Usun
+              </button>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+  }
 
-    task.innerHTML = `
-      <div class="task-item-content">
-        <span class="task-item-title">${taskName}</span>
-        <div class="task-actions">
-          <button class="task-options-btn">⋮</button>
-          <div class="task-options-menu" style="display:none;">
-            <button class="task-expand-btn">Rozwiń</button>
-            <button class="task-move-btn">Przerzuć do kategorii</button>
-            <button class="task-delete-btn">Usuń</button>
+  function renderTaskElement(task) {
+    const taskId = task.id;
+    const taskName = task.title || task.name || "Task";
+    const taskDescription = task.description || "";
+    const statusId = normalizeStatus(task.status);
+    const isMenuOpen = activeTaskMenuStatusId === `${statusId}:${taskId}`;
+
+    return `
+      <div
+        class="task-item"
+        data-task-id="${taskId}"
+        data-status-id="${statusId}"
+        data-description="${escapeHtml(taskDescription)}"
+      >
+        <div class="task-item-content">
+          <span class="task-item-title">${escapeHtml(taskName)}</span>
+          <div class="task-actions">
+            <button class="task-options-btn" type="button" data-action="toggle-task-menu">
+              ...
+            </button>
+            <div
+              class="task-options-menu"
+              style="display:${isMenuOpen ? "block" : "none"};"
+            >
+              <button class="task-expand-btn" type="button" data-action="expand-task">
+                Rozwin
+              </button>
+              <button class="task-move-btn" type="button" data-action="move-task">
+                Zmien status
+              </button>
+              <button class="task-delete-btn" type="button" data-action="delete-task">
+                Usun
+              </button>
+            </div>
           </div>
         </div>
       </div>
     `;
-
-    const taskOptionsBtn = task.querySelector(".task-options-btn");
-    const taskOptionsMenu = task.querySelector(".task-options-menu");
-    const taskDeleteBtn = task.querySelector(".task-delete-btn");
-    const taskExpandBtn = task.querySelector(".task-expand-btn");
-    const taskMoveBtn = task.querySelector(".task-move-btn");
-
-    taskOptionsBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-
-      document
-        .querySelectorAll(".task-options-menu")
-        .forEach((menu) => (menu.style.display = "none"));
-
-      taskOptionsMenu.style.display =
-        taskOptionsMenu.style.display === "block" ? "none" : "block";
-    });
-
-    taskDeleteBtn.addEventListener("click", () => {
-      task.remove();
-    });
-
-    taskExpandBtn.addEventListener("click", () => {
-      const title = task.querySelector(".task-item-title").textContent;
-      const description = task.dataset.description;
-      openTaskDetailsModal(title, description);
-      taskOptionsMenu.style.display = "none";
-    });
-
-    taskMoveBtn.addEventListener("click", () => {
-      const panels = [...document.querySelectorAll(".task-panel")];
-      const panelNames = panels.map((panel, index) => {
-        const title =
-          panel.querySelector(".panel-title")?.textContent ||
-          `Panel ${index + 1}`;
-        return `${index + 1}. ${title}`;
-      });
-
-      if (panels.length <= 1) {
-        alert("Brak innej kategorii do przeniesienia.");
-        return;
-      }
-
-      const choice = prompt(
-        `Wybierz numer kategorii:\n${panelNames.join("\n")}`,
-      );
-
-      const selectedIndex = Number(choice) - 1;
-
-      if (
-        Number.isNaN(selectedIndex) ||
-        selectedIndex < 0 ||
-        selectedIndex >= panels.length
-      ) {
-        return;
-      }
-
-      const targetPanel = panels[selectedIndex];
-      const targetTasksContainer = targetPanel.querySelector(".panel-tasks");
-
-      if (targetTasksContainer && task.parentElement !== targetTasksContainer) {
-        targetTasksContainer.appendChild(task);
-      }
-
-      taskOptionsMenu.style.display = "none";
-    });
-
-    return task;
   }
 
-  // -------------------------
-  // PANEL
-  // -------------------------
+  function renderPanelElement(panel) {
+    const panelTasks = tasks.filter(
+      (task) =>
+        Number(getTaskCategoryId(task)) === Number(activeCategoryId) &&
+        normalizeStatus(task.status) === panel.id
+    );
+    const isMenuOpen = activePanelMenuStatusId === panel.id;
 
-  function createPanelElement(name) {
-    const newPanel = document.createElement("div");
-    newPanel.className = "task-panel";
-    newPanel.innerHTML = `
-      <div class="panel-header">
-        <button class="options-btn">⋮</button>
-        <h3 class="panel-title">${name}</h3>
-        <div class="options-menu" style="display:none;">
-          <button class="rename-btn">Zmień nazwę</button>
-          <button class="delete-btn">Usuń</button>
-          <button class="add-task-btn">Dodaj zadanie</button>
+    return `
+      <div class="task-panel" data-status-id="${panel.id}">
+        <div class="panel-header">
+          <button class="options-btn" type="button" data-action="toggle-panel-menu">
+            ...
+          </button>
+          <h3 class="panel-title">${escapeHtml(panel.name)}</h3>
+          <div class="options-menu" style="display:${
+            isMenuOpen ? "block" : "none"
+          };">
+            <button class="rename-btn" type="button" data-action="rename-status">
+              Zmien nazwe
+            </button>
+            <button class="delete-btn" type="button" data-action="delete-status">
+              Usun
+            </button>
+            <button class="add-task-btn" type="button" data-action="add-task">
+              Dodaj zadanie
+            </button>
+          </div>
+        </div>
+        <div class="panel-tasks">
+          ${panelTasks.map((task) => renderTaskElement(task)).join("")}
         </div>
       </div>
-      <div class="panel-tasks"></div>
     `;
-
-    const optionsBtn = newPanel.querySelector(".options-btn");
-    const optionsMenu = newPanel.querySelector(".options-menu");
-    const deleteBtn = newPanel.querySelector(".delete-btn");
-    const addTaskBtn = newPanel.querySelector(".add-task-btn");
-    const tasksContainer = newPanel.querySelector(".panel-tasks");
-
-    optionsBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-
-      document
-        .querySelectorAll(".options-menu")
-        .forEach((menu) => (menu.style.display = "none"));
-
-      optionsMenu.style.display =
-        optionsMenu.style.display === "block" ? "none" : "block";
-    });
-
-    deleteBtn.addEventListener("click", () => {
-      newPanel.remove();
-    });
-
-    addTaskBtn.addEventListener("click", () => {
-      openTaskModal(tasksContainer, optionsMenu);
-    });
-
-    return newPanel;
   }
 
-  // -------------------------
-  // EVENTY
-  // -------------------------
+  function renderAddStatusButton() {
+    return `
+      <button class="add-status-btn" type="button" data-action="add-status">
+        Dodaj status
+      </button>
+    `;
+  }
 
-  if (addBtn) {
-    addBtn.addEventListener("click", openPanelModal);
+  function renderDashboard() {
+    renderCategoryTabs();
+
+    if (!categories.length) {
+      container.innerHTML = renderAddStatusButton();
+      return;
+    }
+
+    if (!activeCategoryId) {
+      activeCategoryId = Number(categories[0].id);
+    }
+
+    container.innerHTML =
+      statusPanels.map((panel) => renderPanelElement(panel)).join("") +
+      renderAddStatusButton();
+
+    applyTaskSearch();
+  }
+
+  async function loadDashboardData() {
+    try {
+      const loadedCategories = await apiRequest(CATEGORIES_API_PATH, {
+        method: "GET",
+      });
+
+      categories = Array.isArray(loadedCategories) ? loadedCategories : [];
+      activeCategoryId = categories[0]?.id || null;
+    } catch (error) {
+      console.warn(
+        "Could not load categories. Endpoint may not exist yet:",
+        error
+      );
+    }
+
+    try {
+      const loadedTasks = await apiRequest(TASKS_API_PATH, {
+        method: "GET",
+      });
+
+      tasks = Array.isArray(loadedTasks)
+        ? loadedTasks.map((task) => ({
+            ...task,
+            status: normalizeStatus(task.status),
+          }))
+        : [];
+    } catch (error) {
+      console.warn("Could not load tasks. Endpoint may not exist yet:", error);
+    }
+
+    renderDashboard();
+  }
+
+  if (addCategoryBtn) {
+    addCategoryBtn.addEventListener("click", openCategoryModal);
   }
 
   if (cancelBtn) {
@@ -248,64 +412,339 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (saveBtn) {
-    saveBtn.addEventListener("click", () => {
+    saveBtn.addEventListener("click", async () => {
       const name = panelNameInput.value.trim();
 
       if (!name) {
-        alert("Wpisz nazwę panelu!");
+        alert("Wpisz nazwe kategorii!");
         return;
       }
 
-      const newPanel = createPanelElement(name);
-      container.insertBefore(newPanel, addBtn);
+      saveBtn.disabled = true;
 
-      closeAllModals();
+      try {
+        const savedCategory = await apiRequest(CATEGORIES_API_PATH, {
+          method: "POST",
+          body: JSON.stringify({ name }),
+        });
+
+        categories.push(savedCategory);
+        activeCategoryId = Number(savedCategory.id);
+        openCategoryMenu = null;
+        closeAllModals();
+        renderDashboard();
+      } catch (error) {
+        console.error("Failed to save category:", error);
+        alert("Nie udalo sie zapisac kategorii w bazie.");
+      } finally {
+        saveBtn.disabled = false;
+      }
     });
   }
 
   if (taskSaveBtn) {
-    taskSaveBtn.addEventListener("click", () => {
+    taskSaveBtn.addEventListener("click", async () => {
       const taskName = taskNameInput.value.trim();
       const taskDescription = taskDescriptionInput.value.trim();
 
-      if (!taskName || !activeTasksContainer) {
+      if (!taskName || !activeCategoryId) {
         return;
       }
 
-      const taskElement = createTaskElement(taskName, taskDescription);
-      activeTasksContainer.appendChild(taskElement);
+      taskSaveBtn.disabled = true;
 
-      if (activeOptionsMenu) {
-        activeOptionsMenu.style.display = "none";
+      try {
+        const savedTask = await apiRequest(TASKS_API_PATH, {
+          method: "POST",
+          body: JSON.stringify({
+            title: taskName,
+            description: taskDescription,
+            categoryId: Number(activeCategoryId),
+          }),
+        });
+
+        tasks.push({
+          ...savedTask,
+          status: activeStatusId,
+        });
+
+        activePanelMenuStatusId = null;
+        closeAllModals();
+        renderDashboard();
+      } catch (error) {
+        console.error("Failed to save task:", error);
+        alert("Nie udalo sie zapisac zadania w bazie.");
+      } finally {
+        taskSaveBtn.disabled = false;
       }
-
-      closeAllModals();
     });
   }
 
-  document.addEventListener("click", () => {
-    document
-      .querySelectorAll(".options-menu")
-      .forEach((menu) => (menu.style.display = "none"));
+  if (searchInput) {
+    searchInput.addEventListener("input", applyTaskSearch);
+  }
 
-    document
-      .querySelectorAll(".task-options-menu")
-      .forEach((menu) => (menu.style.display = "none"));
+  if (clearSearchButton) {
+    clearSearchButton.addEventListener("click", () => {
+      if (!searchInput) {
+        return;
+      }
+
+      searchInput.value = "";
+      searchInput.focus();
+      applyTaskSearch();
+    });
+  }
+
+  categoryTabs.addEventListener("click", (event) => {
+    const categoryItem = event.target.closest(".category-tab-item");
+
+    if (!categoryItem) {
+      return;
+    }
+
+    const categoryId = Number(categoryItem.dataset.categoryId);
+    const action = event.target.dataset.action;
+
+    if (action === "select-category") {
+      activeCategoryId = categoryId;
+      openCategoryMenu = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "toggle-category-menu") {
+      event.preventDefault();
+      event.stopPropagation();
+      openCategoryMenu =
+        openCategoryMenu?.id === categoryId
+          ? null
+          : {
+              id: categoryId,
+              ...getCategoryMenuPosition(event.target),
+            };
+      renderCategoryTabs();
+      return;
+    }
+
+    if (action === "rename-category") {
+      const category = categories.find(
+        (item) => Number(item.id) === categoryId
+      );
+      const newName = prompt("Nowa nazwa kategorii:", category?.name || "");
+
+      if (!newName || !newName.trim()) {
+        return;
+      }
+
+      categories = categories.map((item) =>
+        Number(item.id) === categoryId
+          ? { ...item, name: newName.trim() }
+          : item
+      );
+
+      openCategoryMenu = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "delete-category") {
+      const confirmed = confirm("Usunac kategorie razem z jej zadaniami?");
+
+      if (!confirmed) {
+        return;
+      }
+
+      categories = categories.filter((item) => Number(item.id) !== categoryId);
+      tasks = tasks.filter(
+        (task) => Number(getTaskCategoryId(task)) !== categoryId
+      );
+
+      if (Number(activeCategoryId) === categoryId) {
+        activeCategoryId = categories[0]?.id || null;
+      }
+
+      openCategoryMenu = null;
+      renderDashboard();
+    }
+  });
+
+  container.addEventListener("click", (event) => {
+    const action = event.target.dataset.action;
+    const panelElement = event.target.closest(".task-panel");
+    const taskElement = event.target.closest(".task-item");
+
+    if (action === "add-status") {
+      const newStatusName = prompt("Nazwa nowego statusu:");
+
+      if (!newStatusName || !newStatusName.trim()) {
+        return;
+      }
+
+      const trimmedName = newStatusName.trim();
+      statusPanels = [
+        ...statusPanels,
+        { id: createStatusId(trimmedName), name: trimmedName },
+      ];
+      renderDashboard();
+      return;
+    }
+
+    if (!panelElement) {
+      return;
+    }
+
+    const panelStatusId = panelElement.dataset.statusId;
+
+    if (action === "toggle-panel-menu") {
+      event.stopPropagation();
+      activePanelMenuStatusId =
+        activePanelMenuStatusId === panelStatusId ? null : panelStatusId;
+      activeTaskMenuStatusId = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "rename-status") {
+      const panel = statusPanels.find((item) => item.id === panelStatusId);
+      const newName = prompt("Nowa nazwa statusu:", panel?.name || "");
+
+      if (!newName || !newName.trim()) {
+        return;
+      }
+
+      statusPanels = statusPanels.map((item) =>
+        item.id === panelStatusId ? { ...item, name: newName.trim() } : item
+      );
+      activePanelMenuStatusId = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "delete-status") {
+      if (statusPanels.length <= 1) {
+        alert("Musi zostac przynajmniej jeden status.");
+        return;
+      }
+
+      const confirmed = confirm("Usunac status razem z jego zadaniami?");
+
+      if (!confirmed) {
+        return;
+      }
+
+      tasks = tasks.filter(
+        (task) => normalizeStatus(task.status) !== panelStatusId
+      );
+      statusPanels = statusPanels.filter((item) => item.id !== panelStatusId);
+
+      if (activeStatusId === panelStatusId) {
+        activeStatusId = statusPanels[0]?.id || "";
+      }
+
+      activePanelMenuStatusId = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "add-task") {
+      activePanelMenuStatusId = null;
+      openTaskModal(panelStatusId);
+      return;
+    }
+
+    if (!taskElement) {
+      return;
+    }
+
+    const taskId = Number(taskElement.dataset.taskId);
+    const taskStatusId = taskElement.dataset.statusId;
+
+    if (action === "toggle-task-menu") {
+      event.stopPropagation();
+      activeTaskMenuStatusId =
+        activeTaskMenuStatusId === `${taskStatusId}:${taskId}`
+          ? null
+          : `${taskStatusId}:${taskId}`;
+      activePanelMenuStatusId = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "expand-task") {
+      const task = tasks.find((item) => Number(item.id) === taskId);
+      activeTaskMenuStatusId = null;
+      openTaskDetails(task?.title || "Task", task?.description || "");
+      return;
+    }
+
+    if (action === "delete-task") {
+      tasks = tasks.filter((item) => Number(item.id) !== taskId);
+      activeTaskMenuStatusId = null;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "move-task") {
+      if (statusPanels.length <= 1) {
+        alert("Brak innego statusu do przeniesienia.");
+        return;
+      }
+
+      const currentStatus = normalizeStatus(taskStatusId);
+      const availableStatuses = statusPanels.filter(
+        (panel) => panel.id !== currentStatus
+      );
+      const selectedLabel = prompt(
+        `Wybierz status:\n${availableStatuses
+          .map((panel, index) => `${index + 1}. ${panel.name}`)
+          .join("\n")}`
+      );
+      const selectedStatus = availableStatuses[Number(selectedLabel) - 1];
+
+      if (!selectedStatus) {
+        return;
+      }
+
+      tasks = tasks.map((item) =>
+        Number(item.id) === taskId
+          ? { ...item, status: selectedStatus.id }
+          : item
+      );
+
+      activeTaskMenuStatusId = null;
+      renderDashboard();
+    }
+  });
+
+  document.addEventListener("click", () => {
+    if (
+      openCategoryMenu !== null ||
+      activePanelMenuStatusId !== null ||
+      activeTaskMenuStatusId !== null
+    ) {
+      openCategoryMenu = null;
+      activePanelMenuStatusId = null;
+      activeTaskMenuStatusId = null;
+      renderDashboard();
+    }
   });
 
   if (panelNameInput) {
-    panelNameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
+    panelNameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
         saveBtn.click();
       }
     });
   }
 
   if (taskNameInput) {
-    taskNameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
+    taskNameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
         taskSaveBtn.click();
       }
     });
   }
+
+  loadDashboardData();
 });

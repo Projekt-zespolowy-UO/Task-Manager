@@ -1,11 +1,30 @@
-const TOKEN_KEY = "planix_token";
-const REFRESH_TOKEN_KEY = "planix_refresh_token";
-const USER_EMAIL_KEY = "planix_user_email";
+document.addEventListener("DOMContentLoaded", () => {
+  loadCurrentUser();
+  setupLogout();
+  setupDisabledMobileLinks();
+});
 
-function clearAuthStorage(storage) {
-  storage.removeItem(TOKEN_KEY);
-  storage.removeItem(REFRESH_TOKEN_KEY);
-  storage.removeItem(USER_EMAIL_KEY);
+async function loadCurrentUser() {
+  const userNameElement = document.getElementById("user-name");
+
+  try {
+    const user = await apiRequest("/user/userdata", {
+      method: "GET",
+    });
+
+    console.log("Loaded user:", user);
+
+    if (userNameElement) {
+      userNameElement.textContent =
+        user.userName || user.username || user.name || user.email || "User";
+    }
+  } catch (error) {
+    console.error("Could not load user:", error);
+
+    if (userNameElement) {
+      userNameElement.textContent = "User";
+    }
+  }
 }
 
 function closeMobileMenu() {
@@ -13,19 +32,20 @@ function closeMobileMenu() {
   document.getElementById("overlay")?.classList.remove("active");
 }
 
-function logout() {
-  clearAuthStorage(localStorage);
-  clearAuthStorage(sessionStorage);
-  closeMobileMenu();
-  window.location.href = "./login.html";
+function setupLogout() {
+  document.querySelectorAll(".logout-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      clearStoredAuth();
+      closeMobileMenu();
+      window.location.href = "./login.html";
+    });
+  });
 }
 
-document.querySelectorAll(".logout-btn").forEach((button) => {
-  button.addEventListener("click", logout);
-});
-
-document.querySelectorAll(".mobile-menu-disabled").forEach((link) => {
-  link.addEventListener("click", (event) => {
-    event.preventDefault();
+function setupDisabledMobileLinks() {
+  document.querySelectorAll(".mobile-menu-disabled").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+    });
   });
-});
+}

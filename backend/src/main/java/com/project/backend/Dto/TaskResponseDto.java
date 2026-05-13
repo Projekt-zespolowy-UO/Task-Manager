@@ -18,6 +18,4 @@ public class TaskResponseDto {
     private Priority priority;
     private LocalDate deadline;
     private Long categoryId;
-    private String categoryName;
-    private Long userId;
 }

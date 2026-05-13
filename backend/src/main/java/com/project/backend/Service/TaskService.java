@@ -1,12 +1,20 @@
 package com.project.backend.Service;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.project.backend.Dto.TaskCategoryUpdateDto;
 import com.project.backend.Dto.TaskCreateDto;
+import com.project.backend.Dto.TaskPatchDto;
 import com.project.backend.Dto.TaskResponseDto;
+import com.project.backend.Dto.TaskStatusUpdateDto;
+import com.project.backend.Dto.TaskUpdateDto;
+import com.project.backend.Enum.Priority;
+import com.project.backend.Enum.Status;
 import com.project.backend.Model.CategoryModel;
 import com.project.backend.Model.TaskModel;
 import com.project.backend.Model.UserModel;
@@ -23,22 +31,107 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
 
+    @Transactional(readOnly = true)
+    public List<TaskResponseDto> getTasks(CustomUserDetails userDetails) {
+        UserModel user = requireAuthenticatedUser(userDetails);
+
+        return taskRepository.findByUser_IdAndCategory_User_IdOrderByIdAsc(user.getId(), user.getId())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @Transactional
     public TaskResponseDto createTask(TaskCreateDto dto, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        CategoryModel category = categoryRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+        CategoryModel category = requireOwnedCategory(dto.getCategoryId(), user.getId());
 
         TaskModel task = new TaskModel();
+        task.setTitle(dto.getTitle().trim());
+        task.setDescription(dto.getDescription());
+        task.setStatus(dto.getStatus() != null ? dto.getStatus() : Status.TODO);
+        task.setPriority(dto.getPriority() != null ? dto.getPriority() : Priority.MEDIUM);
+        task.setDeadline(dto.getDeadline());
+        task.setCategory(category);
+        task.setUser(user);
+
+        return toResponse(taskRepository.save(task));
+    }
+
+    @Transactional
+    public TaskResponseDto updateTask(Long taskId, TaskUpdateDto dto, CustomUserDetails userDetails) {
+        UserModel user = requireAuthenticatedUser(userDetails);
+        TaskModel task = requireOwnedTask(taskId, user.getId());
+        CategoryModel category = requireOwnedCategory(dto.getCategoryId(), user.getId());
+
         task.setTitle(dto.getTitle().trim());
         task.setDescription(dto.getDescription());
         task.setStatus(dto.getStatus());
         task.setPriority(dto.getPriority());
         task.setDeadline(dto.getDeadline());
         task.setCategory(category);
-        task.setUser(user);
 
         return toResponse(taskRepository.save(task));
+    }
+
+    @Transactional
+    public TaskResponseDto patchTask(Long taskId, TaskPatchDto dto, CustomUserDetails userDetails) {
+        UserModel user = requireAuthenticatedUser(userDetails);
+        TaskModel task = requireOwnedTask(taskId, user.getId());
+
+        if (dto.getTitle() != null) {
+            String title = dto.getTitle().trim();
+            if (title.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title must not be blank");
+            }
+            task.setTitle(title);
+        }
+        if (dto.getDescription() != null) {
+            task.setDescription(dto.getDescription());
+        }
+        if (dto.getStatus() != null) {
+            task.setStatus(dto.getStatus());
+        }
+        if (dto.getPriority() != null) {
+            task.setPriority(dto.getPriority());
+        }
+        if (dto.getDeadline() != null) {
+            task.setDeadline(dto.getDeadline());
+        }
+        if (dto.getCategoryId() != null) {
+            task.setCategory(requireOwnedCategory(dto.getCategoryId(), user.getId()));
+        }
+
+        return toResponse(taskRepository.save(task));
+    }
+
+    @Transactional
+    public TaskResponseDto changeStatus(Long taskId, TaskStatusUpdateDto dto, CustomUserDetails userDetails) {
+        UserModel user = requireAuthenticatedUser(userDetails);
+        TaskModel task = requireOwnedTask(taskId, user.getId());
+
+        task.setStatus(dto.getStatus());
+
+        return toResponse(taskRepository.save(task));
+    }
+
+    @Transactional
+    public TaskResponseDto changeCategory(Long taskId, TaskCategoryUpdateDto dto, CustomUserDetails userDetails) {
+        UserModel user = requireAuthenticatedUser(userDetails);
+        TaskModel task = requireOwnedTask(taskId, user.getId());
+        CategoryModel category = requireOwnedCategory(dto.getCategoryId(), user.getId());
+
+        task.setCategory(category);
+
+        return toResponse(taskRepository.save(task));
+    }
+
+    @Transactional
+    public void deleteTask(Long taskId, CustomUserDetails userDetails) {
+        UserModel user = requireAuthenticatedUser(userDetails);
+        TaskModel task = requireOwnedTask(taskId, user.getId());
+
+        taskRepository.delete(task);
     }
 
     private UserModel requireAuthenticatedUser(CustomUserDetails userDetails) {
@@ -49,9 +142,18 @@ public class TaskService {
         return userDetails.user();
     }
 
+    private TaskModel requireOwnedTask(Long taskId, Long userId) {
+        return taskRepository.findByIdAndUser_Id(taskId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+    }
+
+    private CategoryModel requireOwnedCategory(Long categoryId, Long userId) {
+        return categoryRepository.findByIdAndUser_Id(categoryId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+    }
+
     private TaskResponseDto toResponse(TaskModel task) {
         CategoryModel category = task.getCategory();
-        UserModel user = task.getUser();
 
         return new TaskResponseDto(
                 task.getId(),
@@ -60,8 +162,6 @@ public class TaskService {
                 task.getStatus(),
                 task.getPriority(),
                 task.getDeadline(),
-                category != null ? category.getId() : null,
-                category != null ? category.getName() : null,
-                user != null ? user.getId() : null);
+                category != null ? category.getId() : null);
     }
 }

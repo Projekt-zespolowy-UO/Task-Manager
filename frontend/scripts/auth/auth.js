@@ -73,8 +73,8 @@ async function postJson(path, payload) {
       typeof data === "object" && data?.message
         ? data.message
         : typeof data === "string" && data
-        ? data
-        : `Request failed with status ${response.status}`;
+          ? data
+          : `Request failed with status ${response.status}`;
 
     throw new Error(message);
   }
@@ -152,7 +152,7 @@ function setupRegistration() {
   const emailInput = document.getElementById("registration-email");
   const passwordInput = document.getElementById("registration-password");
   const confirmPasswordInput = document.getElementById(
-    "registration-password-confirm"
+    "registration-password-confirm",
   );
   const termsInput = document.getElementById("registration-terms");
   const feedback = document.getElementById("registration-feedback");
@@ -175,7 +175,7 @@ function setupRegistration() {
       setFeedback(
         feedback,
         "Hasło musi mieć co najmniej 6 znaków.",
-        "is-error"
+        "is-error",
       );
       return;
     }
@@ -189,7 +189,7 @@ function setupRegistration() {
       setFeedback(
         feedback,
         "Zaakceptuj regulamin i politykę prywatności.",
-        "is-error"
+        "is-error",
       );
       return;
     }
@@ -230,7 +230,7 @@ function setupPasswordReset() {
   const codeInput = document.getElementById("reset-code");
   const newPasswordInput = document.getElementById("reset-new-password");
   const confirmPasswordInput = document.getElementById(
-    "reset-new-password-confirm"
+    "reset-new-password-confirm",
   );
   const requestFeedback = document.getElementById("reset-request-feedback");
   const confirmFeedback = document.getElementById("reset-confirm-feedback");
@@ -250,7 +250,7 @@ function setupPasswordReset() {
     setFeedback(
       requestFeedback,
       "Wysyłanie kodu resetującego...",
-      "is-loading"
+      "is-loading",
     );
     setButtonState(requestButton, true, "Wysyłanie...", "Wyślij kod");
 
@@ -259,7 +259,7 @@ function setupPasswordReset() {
       setFeedback(
         requestFeedback,
         "Kod został wysłany. Sprawdź swoją skrzynkę e-mail.",
-        "is-success"
+        "is-success",
       );
       requestBox.classList.add("auth-step-hidden");
       confirmBox.classList.remove("auth-step-hidden");
@@ -283,7 +283,7 @@ function setupPasswordReset() {
       setFeedback(
         confirmFeedback,
         "Uzupełnij e-mail, kod i nowe hasło.",
-        "is-error"
+        "is-error",
       );
       return;
     }
@@ -292,7 +292,7 @@ function setupPasswordReset() {
       setFeedback(
         confirmFeedback,
         "Hasło musi mieć co najmniej 6 znaków.",
-        "is-error"
+        "is-error",
       );
       return;
     }
@@ -315,7 +315,7 @@ function setupPasswordReset() {
       setFeedback(
         confirmFeedback,
         "Hasło zostało zmienione. Za chwilę wrócisz do logowania.",
-        "is-success"
+        "is-success",
       );
       window.setTimeout(() => {
         window.location.href = "./login.html";

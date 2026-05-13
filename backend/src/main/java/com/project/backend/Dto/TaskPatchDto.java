@@ -5,17 +5,14 @@ import java.time.LocalDate;
 import com.project.backend.Enum.Priority;
 import com.project.backend.Enum.Status;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class TaskCreateDto {
+public class TaskPatchDto {
 
-    @NotBlank
     @Size(max = 255)
     private String title;
 
@@ -25,8 +22,8 @@ public class TaskCreateDto {
     private Status status;
 
     private Priority priority;
+
     private LocalDate deadline;
 
-    @NotNull
     private Long categoryId;
 }

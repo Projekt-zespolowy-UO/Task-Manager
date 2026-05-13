@@ -1,5 +1,4 @@
 package com.project.backend.Service;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,9 +23,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final MailService mailService;
-
-    @Value("${jwt.secret}")
-    private String passwordResetSecret;
+    private final PasswordResetCodeService passwordResetCodeService;
 
     @Transactional(readOnly = true)
     public JwtAuthDto authenticate(UserDto userDto) {
@@ -68,7 +65,7 @@ public class AuthService {
         UserModel user = userRepository.findByEmail(request.getEmail().trim().toLowerCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with this email not found"));
 
-        String code = generateResetCodeForEmail(user.getEmail(), Instant.now());
+        String code = passwordResetCodeService.createResetCode(user);
         String emailText = "Your password reset code: " + code
                 + "\nThis code is valid for 15 minutes.";
         mailService.sendEmail(user.getEmail(), "Password Reset", emailText);
@@ -81,7 +78,7 @@ public class AuthService {
         UserModel user = userRepository.findByEmail(request.getEmail().trim().toLowerCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User with this email not found"));
 
-        if (!isResetCodeValid(user.getEmail(), request.getCode(), Instant.now())) {
+        if (!passwordResetCodeService.consumeResetCode(user, request.getCode())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reset code is invalid or expired");
         }
 
