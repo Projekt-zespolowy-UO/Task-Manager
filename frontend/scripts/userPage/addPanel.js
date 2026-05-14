@@ -537,14 +537,21 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      categories = categories.map((item) =>
-        Number(item.id) === categoryId
-          ? { ...item, name: newName.trim() }
-          : item
-      );
-
-      openCategoryMenu = null;
-      renderDashboard();
+      apiRequest(`${CATEGORIES_API_PATH}/${categoryId}`, {
+        method: "PUT",
+        body: JSON.stringify({ name: newName.trim() }),
+      })
+        .then((updatedCategory) => {
+          categories = categories.map((item) =>
+            Number(item.id) === categoryId ? updatedCategory : item
+          );
+          openCategoryMenu = null;
+          renderDashboard();
+        })
+        .catch((error) => {
+          console.error("Failed to rename category:", error);
+          alert("Nie udalo sie zmienic nazwy kategorii.");
+        });
       return;
     }
 
@@ -555,17 +562,28 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      categories = categories.filter((item) => Number(item.id) !== categoryId);
-      tasks = tasks.filter(
-        (task) => Number(getTaskCategoryId(task)) !== categoryId
-      );
+      apiRequest(`${CATEGORIES_API_PATH}/${categoryId}`, {
+        method: "DELETE",
+      })
+        .then(() => {
+          categories = categories.filter(
+            (item) => Number(item.id) !== categoryId
+          );
+          tasks = tasks.filter(
+            (task) => Number(getTaskCategoryId(task)) !== categoryId
+          );
 
-      if (Number(activeCategoryId) === categoryId) {
-        activeCategoryId = categories[0]?.id || null;
-      }
+          if (Number(activeCategoryId) === categoryId) {
+            activeCategoryId = categories[0]?.id || null;
+          }
 
-      openCategoryMenu = null;
-      renderDashboard();
+          openCategoryMenu = null;
+          renderDashboard();
+        })
+        .catch((error) => {
+          console.error("Failed to delete category:", error);
+          alert("Nie udalo sie usunac kategorii.");
+        });
     }
   });
 
