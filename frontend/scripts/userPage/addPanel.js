@@ -80,6 +80,16 @@ document.addEventListener("DOMContentLoaded", () => {
       : statusPanels[0].id;
   }
 
+  function toBackendStatus(statusId) {
+    const normalizedStatus = normalizeStatus(statusId);
+
+    if (normalizedStatus === "IN_PROGRESS" || normalizedStatus === "DONE") {
+      return normalizedStatus;
+    }
+
+    return "TODO";
+  }
+
   function createStatusId(name) {
     const baseId =
       String(name || "")
@@ -459,13 +469,14 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify({
             title: taskName,
             description: taskDescription,
+            status: toBackendStatus(activeStatusId),
             categoryId: Number(activeCategoryId),
           }),
         });
 
         tasks.push({
           ...savedTask,
-          status: activeStatusId,
+          status: normalizeStatus(savedTask.status),
         });
 
         activePanelMenuStatusId = null;
@@ -697,9 +708,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (action === "delete-task") {
-      tasks = tasks.filter((item) => Number(item.id) !== taskId);
-      activeTaskMenuStatusId = null;
-      renderDashboard();
+      const confirmed = confirm("Usunac zadanie?");
+
+      if (!confirmed) {
+        return;
+      }
+
+      apiRequest(`${TASKS_API_PATH}/${taskId}`, {
+        method: "DELETE",
+      })
+        .then(() => {
+          tasks = tasks.filter((item) => Number(item.id) !== taskId);
+          activeTaskMenuStatusId = null;
+          renderDashboard();
+        })
+        .catch((error) => {
+          console.error("Failed to delete task:", error);
+          alert("Nie udalo sie usunac zadania.");
+        });
       return;
     }
 
@@ -724,14 +750,30 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      tasks = tasks.map((item) =>
-        Number(item.id) === taskId
-          ? { ...item, status: selectedStatus.id }
-          : item
-      );
+      apiRequest(`${TASKS_API_PATH}/${taskId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: toBackendStatus(selectedStatus.id),
+        }),
+      })
+        .then((updatedTask) => {
+          tasks = tasks.map((item) =>
+            Number(item.id) === taskId
+              ? {
+                  ...item,
+                  ...updatedTask,
+                  status: normalizeStatus(updatedTask.status),
+                }
+              : item
+          );
 
-      activeTaskMenuStatusId = null;
-      renderDashboard();
+          activeTaskMenuStatusId = null;
+          renderDashboard();
+        })
+        .catch((error) => {
+          console.error("Failed to move task:", error);
+          alert("Nie udalo sie zmienic statusu zadania.");
+        });
     }
   });
 
