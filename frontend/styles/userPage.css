@@ -30,7 +30,8 @@ header {
   border-radius: 63px;
   display: flex;
   align-items: center;
-  padding: 8px 18px;
+  padding: 12px 28px;
+  margin-right: 180px;
 }
 
 .search-input {
@@ -52,14 +53,6 @@ header {
   border-color: rgb(70, 60, 206);
   box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
   background-color: rgba(255, 255, 255, 0.05);
-}
-
-.clear-search {
-  background: transparent;
-  border: gray solid 0.5px;
-  border-radius: 50%;
-  color: gray;
-  cursor: pointer;
 }
 
 .clear-search:hover {
