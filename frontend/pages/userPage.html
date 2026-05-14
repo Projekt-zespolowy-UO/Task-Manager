@@ -100,7 +100,7 @@
 
     <div id="task-modal" class="modal">
       <div class="modal-content">
-        <h3>Dodaj nowe zadanie</h3>
+        <h3 id="task-modal-title">Dodaj nowe zadanie</h3>
 
         <input type="text" id="task-name-input" placeholder="Wpisz nazwe..." />
 
@@ -109,6 +109,16 @@
           placeholder="Wpisz opis zadania..."
           rows="5"
         ></textarea>
+
+        <select id="task-priority-input">
+          <option value="LOW">Low</option>
+          <option value="MEDIUM" selected>Medium</option>
+          <option value="HIGH">High</option>
+        </select>
+
+        <input type="date" id="task-deadline-input" />
+
+        <select id="task-category-input"></select>
 
         <div class="modal-actions">
           <button id="task-cancel-btn" type="button">Anuluj</button>

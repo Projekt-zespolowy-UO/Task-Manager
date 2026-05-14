@@ -30,6 +30,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const taskDescriptionInput = document.getElementById(
     "task-description-input"
   );
+  const taskModalTitle = document.getElementById("task-modal-title");
+  const taskPriorityInput = document.getElementById("task-priority-input");
+  const taskDeadlineInput = document.getElementById("task-deadline-input");
+  const taskCategoryInput = document.getElementById("task-category-input");
 
   const taskDetailsTitle = document.getElementById("task-details-title");
   const taskDetailsDescription = document.getElementById(
@@ -42,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let openCategoryMenu = null;
   let activeTaskMenuStatusId = null;
   let activePanelMenuStatusId = null;
+  let editingTaskId = null;
   let taskDetailsOpen = null;
   let categories = [];
   let tasks = [];
@@ -88,6 +93,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     return "TODO";
+  }
+
+  function createTaskPayload() {
+    const payload = {
+      title: taskNameInput.value.trim(),
+      description: taskDescriptionInput.value.trim(),
+      priority: taskPriorityInput.value,
+      categoryId: Number(taskCategoryInput.value || activeCategoryId),
+    };
+
+    if (taskDeadlineInput.value) {
+      payload.deadline = taskDeadlineInput.value;
+    }
+
+    return payload;
   }
 
   function createStatusId(name) {
@@ -186,10 +206,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function openTaskModal(statusId) {
     activeStatusId = normalizeStatus(statusId);
+    editingTaskId = null;
+    taskModalTitle.textContent = "Dodaj nowe zadanie";
+    taskSaveBtn.textContent = "Dodaj";
+    renderTaskCategoryOptions(activeCategoryId);
     taskModal.style.display = "flex";
     overlay.classList.add("active");
     taskNameInput.value = "";
     taskDescriptionInput.value = "";
+    taskPriorityInput.value = "MEDIUM";
+    taskDeadlineInput.value = "";
+    taskNameInput.focus();
+  }
+
+  function openTaskEditModal(task) {
+    editingTaskId = Number(task.id);
+    activeStatusId = normalizeStatus(task.status);
+    taskModalTitle.textContent = "Edytuj zadanie";
+    taskSaveBtn.textContent = "Zapisz";
+    renderTaskCategoryOptions(getTaskCategoryId(task));
+    taskModal.style.display = "flex";
+    overlay.classList.add("active");
+    taskNameInput.value = task.title || task.name || "";
+    taskDescriptionInput.value = task.description || "";
+    taskPriorityInput.value = task.priority || "MEDIUM";
+    taskDeadlineInput.value = task.deadline || "";
     taskNameInput.focus();
   }
 
@@ -197,7 +238,13 @@ document.addEventListener("DOMContentLoaded", () => {
     taskModal.style.display = "none";
     taskNameInput.value = "";
     taskDescriptionInput.value = "";
+    taskPriorityInput.value = "MEDIUM";
+    taskDeadlineInput.value = "";
+    taskCategoryInput.innerHTML = "";
     activeStatusId = statusPanels[0]?.id || "";
+    editingTaskId = null;
+    taskModalTitle.textContent = "Dodaj nowe zadanie";
+    taskSaveBtn.textContent = "Dodaj";
   }
 
   function openTaskDetails(title, description) {
@@ -265,6 +312,21 @@ document.addEventListener("DOMContentLoaded", () => {
       .join("");
   }
 
+  function renderTaskCategoryOptions(selectedCategoryId) {
+    taskCategoryInput.innerHTML = categories
+      .map(
+        (category) => `
+          <option
+            value="${category.id}"
+            ${Number(category.id) === Number(selectedCategoryId) ? "selected" : ""}
+          >
+            ${escapeHtml(category.name || "Kategoria")}
+          </option>
+        `
+      )
+      .join("");
+  }
+
   function renderTaskElement(task) {
     const taskId = task.id;
     const taskName = task.title || task.name || "Task";
@@ -294,6 +356,9 @@ document.addEventListener("DOMContentLoaded", () => {
               </button>
               <button class="task-move-btn" type="button" data-action="move-task">
                 Zmien status
+              </button>
+              <button class="task-edit-btn" type="button" data-action="edit-task">
+                Edytuj
               </button>
               <button class="task-delete-btn" type="button" data-action="delete-task">
                 Usun
@@ -464,13 +529,42 @@ document.addEventListener("DOMContentLoaded", () => {
       taskSaveBtn.disabled = true;
 
       try {
+        const taskPayload = createTaskPayload();
+
+        if (!taskPayload.title || !taskPayload.categoryId) {
+          return;
+        }
+
+        if (editingTaskId) {
+          const updatedTask = await apiRequest(`${TASKS_API_PATH}/${editingTaskId}`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              ...taskPayload,
+              status: toBackendStatus(activeStatusId),
+            }),
+          });
+
+          tasks = tasks.map((task) =>
+            Number(task.id) === editingTaskId
+              ? {
+                  ...task,
+                  ...updatedTask,
+                  status: normalizeStatus(updatedTask.status),
+                }
+              : task
+          );
+
+          activeTaskMenuStatusId = null;
+          closeAllModals();
+          renderDashboard();
+          return;
+        }
+
         const savedTask = await apiRequest(TASKS_API_PATH, {
           method: "POST",
           body: JSON.stringify({
-            title: taskName,
-            description: taskDescription,
+            ...taskPayload,
             status: toBackendStatus(activeStatusId),
-            categoryId: Number(activeCategoryId),
           }),
         });
 
@@ -704,6 +798,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const task = tasks.find((item) => Number(item.id) === taskId);
       activeTaskMenuStatusId = null;
       openTaskDetails(task?.title || "Task", task?.description || "");
+      return;
+    }
+
+    if (action === "edit-task") {
+      const task = tasks.find((item) => Number(item.id) === taskId);
+
+      if (!task) {
+        return;
+      }
+
+      activeTaskMenuStatusId = null;
+      openTaskEditModal(task);
       return;
     }
 

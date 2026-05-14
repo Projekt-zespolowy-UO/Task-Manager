@@ -495,7 +495,8 @@ header {
 }
 
 .modal-content input,
-.modal-content textarea {
+.modal-content textarea,
+.modal-content select {
   width: 90%;
   padding: 10px;
   margin: 10px 0;
