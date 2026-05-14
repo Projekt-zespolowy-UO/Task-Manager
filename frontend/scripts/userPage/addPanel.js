@@ -46,6 +46,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let openCategoryMenu = null;
   let activeTaskMenuStatusId = null;
   let activePanelMenuStatusId = null;
+  let activeTaskMenuPosition = null;
+  let activePanelMenuPosition = null;
   let editingTaskId = null;
   let taskDetailsOpen = null;
   let categories = [];
@@ -142,9 +144,8 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  function getCategoryMenuPosition(triggerElement) {
+  function getFloatingMenuPosition(triggerElement, menuWidth = 160) {
     const rect = triggerElement.getBoundingClientRect();
-    const menuWidth = 160;
     const viewportPadding = 12;
 
     const left = Math.max(
@@ -333,6 +334,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const taskDescription = task.description || "";
     const statusId = normalizeStatus(task.status);
     const isMenuOpen = activeTaskMenuStatusId === `${statusId}:${taskId}`;
+    const menuStyle =
+      isMenuOpen && activeTaskMenuPosition
+        ? `display:block; left:${activeTaskMenuPosition.left}px; top:${activeTaskMenuPosition.top}px;`
+        : "display:none;";
 
     return `
       <div
@@ -349,7 +354,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </button>
             <div
               class="task-options-menu"
-              style="display:${isMenuOpen ? "block" : "none"};"
+              style="${menuStyle}"
             >
               <button class="task-expand-btn" type="button" data-action="expand-task">
                 Rozwin
@@ -377,6 +382,10 @@ document.addEventListener("DOMContentLoaded", () => {
         normalizeStatus(task.status) === panel.id
     );
     const isMenuOpen = activePanelMenuStatusId === panel.id;
+    const menuStyle =
+      isMenuOpen && activePanelMenuPosition
+        ? `display:block; left:${activePanelMenuPosition.left}px; top:${activePanelMenuPosition.top}px;`
+        : "display:none;";
 
     return `
       <div class="task-panel" data-status-id="${panel.id}">
@@ -385,9 +394,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ...
           </button>
           <h3 class="panel-title">${escapeHtml(panel.name)}</h3>
-          <div class="options-menu" style="display:${
-            isMenuOpen ? "block" : "none"
-          };">
+          <div class="options-menu" style="${menuStyle}">
             <button class="rename-btn" type="button" data-action="rename-status">
               Zmien nazwe
             </button>
@@ -626,7 +633,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ? null
           : {
               id: categoryId,
-              ...getCategoryMenuPosition(event.target),
+              ...getFloatingMenuPosition(event.target),
             };
       renderCategoryTabs();
       return;
@@ -721,9 +728,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (action === "toggle-panel-menu") {
       event.stopPropagation();
-      activePanelMenuStatusId =
-        activePanelMenuStatusId === panelStatusId ? null : panelStatusId;
+      const shouldClosePanelMenu = activePanelMenuStatusId === panelStatusId;
+      activePanelMenuStatusId = shouldClosePanelMenu ? null : panelStatusId;
+      activePanelMenuPosition = shouldClosePanelMenu
+        ? null
+        : getFloatingMenuPosition(event.target);
       activeTaskMenuStatusId = null;
+      activeTaskMenuPosition = null;
       renderDashboard();
       return;
     }
@@ -785,11 +796,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (action === "toggle-task-menu") {
       event.stopPropagation();
-      activeTaskMenuStatusId =
-        activeTaskMenuStatusId === `${taskStatusId}:${taskId}`
-          ? null
-          : `${taskStatusId}:${taskId}`;
+      const taskMenuId = `${taskStatusId}:${taskId}`;
+      const shouldCloseTaskMenu = activeTaskMenuStatusId === taskMenuId;
+      activeTaskMenuStatusId = shouldCloseTaskMenu ? null : taskMenuId;
+      activeTaskMenuPosition = shouldCloseTaskMenu
+        ? null
+        : getFloatingMenuPosition(event.target);
       activePanelMenuStatusId = null;
+      activePanelMenuPosition = null;
       renderDashboard();
       return;
     }
@@ -809,6 +823,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       activeTaskMenuStatusId = null;
+      activeTaskMenuPosition = null;
       openTaskEditModal(task);
       return;
     }
@@ -826,6 +841,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(() => {
           tasks = tasks.filter((item) => Number(item.id) !== taskId);
           activeTaskMenuStatusId = null;
+          activeTaskMenuPosition = null;
           renderDashboard();
         })
         .catch((error) => {
@@ -874,6 +890,7 @@ document.addEventListener("DOMContentLoaded", () => {
           );
 
           activeTaskMenuStatusId = null;
+          activeTaskMenuPosition = null;
           renderDashboard();
         })
         .catch((error) => {
@@ -892,6 +909,8 @@ document.addEventListener("DOMContentLoaded", () => {
       openCategoryMenu = null;
       activePanelMenuStatusId = null;
       activeTaskMenuStatusId = null;
+      activePanelMenuPosition = null;
+      activeTaskMenuPosition = null;
       renderDashboard();
     }
   });
