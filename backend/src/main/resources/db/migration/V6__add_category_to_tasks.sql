@@ -1,6 +1,4 @@
--- Add foreign key to tasks table
-ALTER TABLE tasks
-ADD COLUMN category_id BIGINT NOT NULL,
-ADD CONSTRAINT fk_category
-FOREIGN KEY (category_id)
-REFERENCES task_categories(id);
+-- tasks.category_id already exists in V1__init_tables.sql and points to categories.
+-- Keep this migration as a no-op so Flyway history stays stable without trying to
+-- recreate the same column/constraint on fresh databases.
+SELECT 1;

@@ -1,4 +1,4 @@
-CREATE TABLE reminder_tasks (
+CREATE TABLE IF NOT EXISTS reminder_tasks (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
