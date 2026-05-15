@@ -3,6 +3,7 @@ package com.project.backend.Security;
 import java.io.IOException;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -63,7 +64,8 @@ public class JwtFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
 
-        return path.startsWith("/auth/")
+        return HttpMethod.OPTIONS.matches(request.getMethod())
+            || path.startsWith("/auth/")
             || path.startsWith("/user/registration")
             || path.startsWith("/v3/api-docs")
             || path.startsWith("/swagger-ui");
