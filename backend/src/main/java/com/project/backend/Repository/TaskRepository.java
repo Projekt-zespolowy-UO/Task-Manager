@@ -13,6 +13,8 @@ import com.project.backend.Enum.Status;
 import com.project.backend.Model.TaskModel;
 
 public interface TaskRepository extends JpaRepository<TaskModel, Long> {
+    List<TaskModel> findByUser_IdOrderByIdAsc(Long userId);
+
     List<TaskModel> findByUser_IdAndCategory_User_IdOrderByIdAsc(Long userId, Long categoryUserId);
 
     Optional<TaskModel> findByIdAndUser_Id(Long id, Long userId);
