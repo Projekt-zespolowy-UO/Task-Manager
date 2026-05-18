@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm \"d:/Projekt/Task-Manager/backend/target/classes/db/migration/V5__add_user_to_categories.sql\" \"d:/Projekt/Task-Manager/backend/target/classes/db/migration/V6__add_task_due_notifications.sql\")"
+    ],
+    "additionalDirectories": [
+      "d:\\Projekt\\Task-Manager\\backend\\target\\classes\\db\\migration"
+    ]
+  }
+}
