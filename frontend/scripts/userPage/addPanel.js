@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const CATEGORIES_API_PATH = "/categories";
   const TASKS_API_PATH = "/tasks";
+  const TASKS_EXPORT_API_PATH = "/tasks/export.csv";
 
   const DEFAULT_STATUS_PANELS = [
     { id: "BACKLOG", name: "Backlog" },
@@ -9,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
   ];
 
   const addCategoryBtn = document.getElementById("add-category-btn");
+  const exportCsvBtn = document.getElementById("export-csv-btn");
   const panelModal = document.getElementById("panel-modal");
   const taskModal = document.getElementById("task-modal");
   const taskDetailsModal = document.getElementById("task-details-modal");
@@ -191,6 +193,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
       panel.classList.toggle("task-panel-hidden", !hasVisibleTask);
     });
+  }
+
+  function buildExportPath() {
+    const params = new URLSearchParams();
+    const searchValue = searchInput?.value?.trim();
+
+    if (activeCategoryId) {
+      params.set("categoryId", activeCategoryId);
+    }
+
+    if (searchValue) {
+      params.set("search", searchValue);
+    }
+
+    const queryString = params.toString();
+    return queryString
+      ? `${TASKS_EXPORT_API_PATH}?${queryString}`
+      : TASKS_EXPORT_API_PATH;
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = filename || "tasks.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   function openCategoryModal() {
@@ -475,6 +507,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (addCategoryBtn) {
     addCategoryBtn.addEventListener("click", openCategoryModal);
+  }
+
+  if (exportCsvBtn) {
+    exportCsvBtn.addEventListener("click", async () => {
+      exportCsvBtn.disabled = true;
+      exportCsvBtn.textContent = "Exporting...";
+
+      try {
+        const { blob, filename } = await apiDownload(buildExportPath(), {
+          method: "GET",
+        });
+        downloadBlob(blob, filename);
+      } catch (error) {
+        console.error("Failed to export tasks:", error);
+        alert("Nie udalo sie wyeksportowac zadan.");
+      } finally {
+        exportCsvBtn.disabled = false;
+        exportCsvBtn.textContent = "Export CSV";
+      }
+    });
   }
 
   if (cancelBtn) {

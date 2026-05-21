@@ -125,3 +125,65 @@ async function apiRequest(path, options = {}) {
 
   return data;
 }
+
+async function apiDownload(path, options = {}) {
+  let token = getStoredToken();
+
+  if (!token) {
+    clearStoredAuth();
+    window.location.href = "./login.html";
+    throw new Error("No token");
+  }
+
+  let response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      Accept: "text/csv",
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    try {
+      token = await refreshAccessToken();
+
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers: {
+          Accept: "text/csv",
+          Authorization: `Bearer ${token}`,
+          ...(options.headers || {}),
+        },
+      });
+    } catch (error) {
+      clearStoredAuth();
+      window.location.href = "./login.html";
+      throw error;
+    }
+  }
+
+  if (!response.ok) {
+    const raw = await response.text();
+    throw new Error(raw || `Request failed with status ${response.status}`);
+  }
+
+  return {
+    blob: await response.blob(),
+    filename: getDownloadFilename(response.headers.get("Content-Disposition")),
+  };
+}
+
+function getDownloadFilename(contentDisposition) {
+  if (!contentDisposition) {
+    return null;
+  }
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match) {
+    return decodeURIComponent(utf8Match[1].replaceAll('"', ""));
+  }
+
+  const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  return filenameMatch ? filenameMatch[1] : null;
+}
