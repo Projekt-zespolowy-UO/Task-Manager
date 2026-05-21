@@ -1,7 +1,11 @@
 package com.project.backend.Controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -12,7 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import com.project.backend.Dto.TaskCategoryUpdateDto;
 import com.project.backend.Dto.TaskCreateDto;
@@ -20,6 +26,7 @@ import com.project.backend.Dto.TaskPatchDto;
 import com.project.backend.Dto.TaskResponseDto;
 import com.project.backend.Dto.TaskStatusUpdateDto;
 import com.project.backend.Dto.TaskUpdateDto;
+import com.project.backend.Enum.Status;
 import com.project.backend.Security.CustomUserDetails;
 import com.project.backend.Service.TaskService;
 
@@ -43,6 +50,25 @@ public class TaskController {
     public List<TaskResponseDto> getTasks(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return taskService.getTasks(userDetails);
+    }
+
+    @GetMapping("/export.csv")
+    @Operation(summary = "Export tasks available to the authenticated user as CSV")
+    public ResponseEntity<StreamingResponseBody> exportTasksCsv(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Status status,
+            @RequestParam(required = false) String search) {
+        String filename = "tasks-" + LocalDate.now() + ".csv";
+        StreamingResponseBody responseBody = outputStream ->
+                taskService.writeTasksCsv(outputStream, userDetails, categoryId, status, search);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(filename).build().toString())
+                .body(responseBody);
     }
 
     @PostMapping

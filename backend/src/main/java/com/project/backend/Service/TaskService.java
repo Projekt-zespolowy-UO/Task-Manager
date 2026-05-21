@@ -1,7 +1,15 @@
 package com.project.backend.Service;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +38,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TaskService {
 
+    private static final int CSV_EXPORT_PAGE_SIZE = 500;
+    private static final byte[] UTF8_BOM = new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
     private final DashboardRepository dashboardRepository;
@@ -42,6 +53,53 @@ public class TaskService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public void writeTasksCsv(
+            OutputStream outputStream,
+            CustomUserDetails userDetails,
+            Long categoryId,
+            Status status,
+            String search) throws IOException {
+        UserModel user = requireAuthenticatedUser(userDetails);
+        String normalizedSearch = normalizeSearch(search);
+
+        outputStream.write(UTF8_BOM);
+
+        try (BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(outputStream, StandardCharsets.UTF_8))) {
+            writeCsvRow(writer, List.of(
+                    "ID",
+                    "Title",
+                    "Description",
+                    "Status",
+                    "Priority",
+                    "Deadline",
+                    "Category ID",
+                    "Category Name",
+                    "Dashboard ID"));
+
+            int pageNumber = 0;
+            Slice<TaskModel> taskPage;
+
+            do {
+                Pageable pageable = PageRequest.of(pageNumber, CSV_EXPORT_PAGE_SIZE);
+                taskPage = taskRepository.findOwnedTasksForCsvExport(
+                        user.getId(),
+                        categoryId,
+                        status,
+                        normalizedSearch,
+                        pageable);
+
+                for (TaskModel task : taskPage.getContent()) {
+                    writeCsvRow(writer, toCsvRow(task));
+                }
+
+                writer.flush();
+                pageNumber += 1;
+            } while (taskPage.hasNext());
+        }
     }
 
     @Transactional
@@ -163,6 +221,54 @@ public class TaskService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title must not be blank");
         }
         return trimmed;
+    }
+
+    private String normalizeSearch(String search) {
+        if (search == null) {
+            return null;
+        }
+
+        String trimmed = search.trim();
+        if (trimmed.isBlank()) {
+            return null;
+        }
+        if (trimmed.length() > 255) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Search query is too long");
+        }
+        return trimmed;
+    }
+
+    private List<String> toCsvRow(TaskModel task) {
+        CategoryModel category = task.getCategory();
+
+        return List.of(
+                csvValue(task.getId()),
+                csvValue(task.getTitle()),
+                csvValue(task.getDescription()),
+                csvValue(task.getStatus()),
+                csvValue(task.getPriority()),
+                csvValue(task.getDeadline()),
+                csvValue(category != null ? category.getId() : null),
+                csvValue(category != null ? category.getName() : null),
+                csvValue(task.getDashboard() != null ? task.getDashboard().getId() : null));
+    }
+
+    private String csvValue(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private void writeCsvRow(BufferedWriter writer, List<String> values) throws IOException {
+        for (int i = 0; i < values.size(); i += 1) {
+            if (i > 0) {
+                writer.write(',');
+            }
+            writer.write(escapeCsvValue(values.get(i)));
+        }
+        writer.write("\r\n");
+    }
+
+    private String escapeCsvValue(String value) {
+        return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 
     private TaskResponseDto toResponse(TaskModel task) {

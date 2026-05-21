@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -22,6 +24,27 @@ public interface TaskRepository extends JpaRepository<TaskModel, Long> {
     @Modifying
     @Query("DELETE FROM TaskModel t WHERE t.category.id = :categoryId AND t.user.id = :userId")
     int deleteByCategoryIdAndUserId(@Param("categoryId") Long categoryId, @Param("userId") Long userId);
+
+    @Query("""
+            SELECT t
+            FROM TaskModel t
+            LEFT JOIN FETCH t.category c
+            WHERE t.user.id = :userId
+              AND (:categoryId IS NULL OR c.id = :categoryId)
+              AND (:status IS NULL OR t.status = :status)
+              AND (
+                    :search IS NULL
+                    OR LOWER(t.title) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(COALESCE(t.description, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                  )
+            ORDER BY t.id ASC
+            """)
+    Slice<TaskModel> findOwnedTasksForCsvExport(
+            @Param("userId") Long userId,
+            @Param("categoryId") Long categoryId,
+            @Param("status") Status status,
+            @Param("search") String search,
+            Pageable pageable);
 
     @Query("""
             SELECT t
