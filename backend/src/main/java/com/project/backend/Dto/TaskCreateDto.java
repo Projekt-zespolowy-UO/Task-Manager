@@ -31,4 +31,6 @@ public class TaskCreateDto {
     private Long categoryId;
 
     private Long dashboardId;
+
+    private Long customStatusId;
 }

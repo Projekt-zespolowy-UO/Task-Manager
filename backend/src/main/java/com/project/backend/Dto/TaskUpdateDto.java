@@ -32,4 +32,6 @@ public class TaskUpdateDto {
 
     @NotNull
     private Long categoryId;
+
+    private Long customStatusId;
 }

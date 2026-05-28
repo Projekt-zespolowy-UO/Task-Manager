@@ -19,4 +19,5 @@ public class TaskResponseDto {
     private LocalDate deadline;
     private Long categoryId;
     private Long dashboardId;
+    private Long customStatusId;
 }

@@ -47,6 +47,10 @@ public class TaskModel {
     private CategoryModel category;
 
     @ManyToOne
+    @JoinColumn(name = "custom_status_id")
+    private CustomStatusModel customStatus;
+
+    @ManyToOne
     @JoinColumn(name = "user_id")
     private UserModel user;
 

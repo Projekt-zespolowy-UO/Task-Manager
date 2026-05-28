@@ -33,6 +33,9 @@ public final class TaskSpecifications {
                 if (filter.getDashboardId() != null) {
                     predicates.add(cb.equal(root.get("dashboard").get("id"), filter.getDashboardId()));
                 }
+                if (filter.getCustomStatusId() != null) {
+                    predicates.add(cb.equal(root.get("customStatus").get("id"), filter.getCustomStatusId()));
+                }
                 if (filter.getDeadlineFrom() != null) {
                     predicates.add(cb.greaterThanOrEqualTo(root.get("deadline"), filter.getDeadlineFrom()));
                 }

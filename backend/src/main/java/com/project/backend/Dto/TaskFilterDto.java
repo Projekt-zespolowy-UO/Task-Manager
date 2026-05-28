@@ -17,6 +17,7 @@ public class TaskFilterDto {
     private Priority priority;
     private Long categoryId;
     private Long dashboardId;
+    private Long customStatusId;
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate deadlineFrom;

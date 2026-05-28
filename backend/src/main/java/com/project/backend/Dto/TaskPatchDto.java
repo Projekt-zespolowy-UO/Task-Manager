@@ -26,4 +26,6 @@ public class TaskPatchDto {
     private LocalDate deadline;
 
     private Long categoryId;
+
+    private Long customStatusId;
 }
