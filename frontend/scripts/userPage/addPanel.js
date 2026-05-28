@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const CATEGORIES_API_PATH = "/categories";
   const TASKS_API_PATH = "/tasks";
   const TASKS_EXPORT_API_PATH = "/tasks/export.csv";
+  let draggedTaskId = null;
 
   const DEFAULT_STATUS_PANELS = [
     { id: "BACKLOG", name: "Backlog" },
@@ -30,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const panelNameInput = document.getElementById("panel-name-input");
   const taskNameInput = document.getElementById("task-name-input");
   const taskDescriptionInput = document.getElementById(
-    "task-description-input"
+    "task-description-input",
   );
   const taskModalTitle = document.getElementById("task-modal-title");
   const taskPriorityInput = document.getElementById("task-priority-input");
@@ -39,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const taskDetailsTitle = document.getElementById("task-details-title");
   const taskDetailsDescription = document.getElementById(
-    "task-details-description"
+    "task-details-description",
   );
 
   let statusPanels = [...DEFAULT_STATUS_PANELS];
@@ -154,8 +155,8 @@ document.addEventListener("DOMContentLoaded", () => {
       viewportPadding,
       Math.min(
         window.innerWidth - menuWidth - viewportPadding,
-        rect.right - menuWidth
-      )
+        rect.right - menuWidth,
+      ),
     );
     const top = rect.bottom + 8;
 
@@ -355,7 +356,7 @@ document.addEventListener("DOMContentLoaded", () => {
           >
             ${escapeHtml(category.name || "Kategoria")}
           </option>
-        `
+        `,
       )
       .join("");
   }
@@ -374,6 +375,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return `
       <div
         class="task-item"
+        draggable="true"
         data-task-id="${taskId}"
         data-status-id="${statusId}"
         data-description="${escapeHtml(taskDescription)}"
@@ -411,7 +413,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const panelTasks = tasks.filter(
       (task) =>
         Number(getTaskCategoryId(task)) === Number(activeCategoryId) &&
-        normalizeStatus(task.status) === panel.id
+        normalizeStatus(task.status) === panel.id,
     );
     const isMenuOpen = activePanelMenuStatusId === panel.id;
     const menuStyle =
@@ -483,7 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.warn(
         "Could not load categories. Endpoint may not exist yet:",
-        error
+        error,
       );
     }
 
@@ -595,13 +597,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (editingTaskId) {
-          const updatedTask = await apiRequest(`${TASKS_API_PATH}/${editingTaskId}`, {
-            method: "PATCH",
-            body: JSON.stringify({
-              ...taskPayload,
-              status: toBackendStatus(activeStatusId),
-            }),
-          });
+          const updatedTask = await apiRequest(
+            `${TASKS_API_PATH}/${editingTaskId}`,
+            {
+              method: "PATCH",
+              body: JSON.stringify({
+                ...taskPayload,
+                status: toBackendStatus(activeStatusId),
+              }),
+            },
+          );
 
           tasks = tasks.map((task) =>
             Number(task.id) === editingTaskId
@@ -610,7 +615,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   ...updatedTask,
                   status: normalizeStatus(updatedTask.status),
                 }
-              : task
+              : task,
           );
 
           activeTaskMenuStatusId = null;
@@ -693,7 +698,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (action === "rename-category") {
       const category = categories.find(
-        (item) => Number(item.id) === categoryId
+        (item) => Number(item.id) === categoryId,
       );
       const newName = prompt("Nowa nazwa kategorii:", category?.name || "");
 
@@ -707,7 +712,7 @@ document.addEventListener("DOMContentLoaded", () => {
       })
         .then((updatedCategory) => {
           categories = categories.map((item) =>
-            Number(item.id) === categoryId ? updatedCategory : item
+            Number(item.id) === categoryId ? updatedCategory : item,
           );
           openCategoryMenu = null;
           renderDashboard();
@@ -731,10 +736,10 @@ document.addEventListener("DOMContentLoaded", () => {
       })
         .then(() => {
           categories = categories.filter(
-            (item) => Number(item.id) !== categoryId
+            (item) => Number(item.id) !== categoryId,
           );
           tasks = tasks.filter(
-            (task) => Number(getTaskCategoryId(task)) !== categoryId
+            (task) => Number(getTaskCategoryId(task)) !== categoryId,
           );
 
           if (Number(activeCategoryId) === categoryId) {
@@ -800,7 +805,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       statusPanels = statusPanels.map((item) =>
-        item.id === panelStatusId ? { ...item, name: newName.trim() } : item
+        item.id === panelStatusId ? { ...item, name: newName.trim() } : item,
       );
       activePanelMenuStatusId = null;
       renderDashboard();
@@ -820,7 +825,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       tasks = tasks.filter(
-        (task) => normalizeStatus(task.status) !== panelStatusId
+        (task) => normalizeStatus(task.status) !== panelStatusId,
       );
       statusPanels = statusPanels.filter((item) => item.id !== panelStatusId);
 
@@ -911,12 +916,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const currentStatus = normalizeStatus(taskStatusId);
       const availableStatuses = statusPanels.filter(
-        (panel) => panel.id !== currentStatus
+        (panel) => panel.id !== currentStatus,
       );
       const selectedLabel = prompt(
         `Wybierz status:\n${availableStatuses
           .map((panel, index) => `${index + 1}. ${panel.name}`)
-          .join("\n")}`
+          .join("\n")}`,
       );
       const selectedStatus = availableStatuses[Number(selectedLabel) - 1];
 
@@ -938,7 +943,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   ...updatedTask,
                   status: normalizeStatus(updatedTask.status),
                 }
-              : item
+              : item,
           );
 
           activeTaskMenuStatusId = null;
@@ -950,6 +955,63 @@ document.addEventListener("DOMContentLoaded", () => {
           alert("Nie udalo sie zmienic statusu zadania.");
         });
     }
+  });
+
+  container.addEventListener("dragover", (event) => {
+    event.preventDefault();
+  });
+
+  container.addEventListener("drop", async (event) => {
+    event.preventDefault();
+
+    const panelElement = event.target.closest(".task-panel");
+
+    if (!panelElement || draggedTaskId === null) return;
+
+    const newStatusId = panelElement.dataset.statusId;
+
+    const task = tasks.find((t) => Number(t.id) === draggedTaskId);
+    if (!task) return;
+
+    const currentStatus = normalizeStatus(task.status);
+
+    if (currentStatus === newStatusId) return;
+
+    try {
+      const updatedTask = await apiRequest(
+        `${TASKS_API_PATH}/${draggedTaskId}/status`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            status: toBackendStatus(newStatusId),
+          }),
+        },
+      );
+
+      tasks = tasks.map((t) =>
+        Number(t.id) === draggedTaskId
+          ? {
+              ...t,
+              ...updatedTask,
+              status: normalizeStatus(updatedTask.status),
+            }
+          : t,
+      );
+
+      renderDashboard();
+    } catch (err) {
+      console.error(err);
+      alert("Nie udało się przenieść zadania.");
+    }
+  });
+
+  container.addEventListener("dragstart", (event) => {
+    const taskElement = event.target.closest(".task-item");
+
+    if (!taskElement) return;
+
+    draggedTaskId = Number(taskElement.dataset.taskId);
+    taskElement.classList.add("dragging");
   });
 
   document.addEventListener("click", () => {
