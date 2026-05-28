@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.project.backend.Dto.TaskCategoryUpdateDto;
 import com.project.backend.Dto.TaskCreateDto;
+import com.project.backend.Dto.TaskCustomStatusUpdateDto;
 import com.project.backend.Dto.TaskFilterDto;
 import com.project.backend.Dto.TaskPatchDto;
 import com.project.backend.Dto.TaskResponseDto;
@@ -21,10 +22,12 @@ import com.project.backend.Dto.TaskUpdateDto;
 import com.project.backend.Enum.Priority;
 import com.project.backend.Enum.Status;
 import com.project.backend.Model.CategoryModel;
+import com.project.backend.Model.CustomStatusModel;
 import com.project.backend.Model.Dashboard;
 import com.project.backend.Model.TaskModel;
 import com.project.backend.Model.UserModel;
 import com.project.backend.Repository.CategoryRepository;
+import com.project.backend.Repository.CustomStatusRepository;
 import com.project.backend.Repository.DashboardRepository;
 import com.project.backend.Repository.TaskRepository;
 import com.project.backend.Repository.TaskSpecifications;
@@ -39,6 +42,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
     private final DashboardRepository dashboardRepository;
+    private final CustomStatusRepository customStatusRepository;
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "id", "title", "status", "priority", "deadline");
@@ -83,6 +87,9 @@ public class TaskService {
         task.setCategory(category);
         task.setUser(user);
         task.setDashboard(dashboard);
+        if (dto.getCustomStatusId() != null) {
+            task.setCustomStatus(requireOwnedCustomStatus(dto.getCustomStatusId(), user.getId()));
+        }
 
         return toResponse(taskRepository.save(task));
     }
@@ -98,6 +105,9 @@ public class TaskService {
         task.setPriority(dto.getPriority());
         task.setDeadline(dto.getDeadline());
         task.setCategory(requireOwnedCategory(dto.getCategoryId(), user.getId()));
+        task.setCustomStatus(dto.getCustomStatusId() != null
+                ? requireOwnedCustomStatus(dto.getCustomStatusId(), user.getId())
+                : null);
 
         return toResponse(taskRepository.save(task));
     }
@@ -125,6 +135,21 @@ public class TaskService {
         if (dto.getCategoryId() != null) {
             task.setCategory(requireOwnedCategory(dto.getCategoryId(), user.getId()));
         }
+        if (dto.getCustomStatusId() != null) {
+            task.setCustomStatus(requireOwnedCustomStatus(dto.getCustomStatusId(), user.getId()));
+        }
+
+        return toResponse(taskRepository.save(task));
+    }
+
+    @Transactional
+    public TaskResponseDto changeCustomStatus(Long taskId, TaskCustomStatusUpdateDto dto, CustomUserDetails userDetails) {
+        UserModel user = requireAuthenticatedUser(userDetails);
+        TaskModel task = requireOwnedTask(taskId, user.getId());
+
+        task.setCustomStatus(dto.getCustomStatusId() != null
+                ? requireOwnedCustomStatus(dto.getCustomStatusId(), user.getId())
+                : null);
 
         return toResponse(taskRepository.save(task));
     }
@@ -179,6 +204,11 @@ public class TaskService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dashboard not found"));
     }
 
+    private CustomStatusModel requireOwnedCustomStatus(Long customStatusId, Long userId) {
+        return customStatusRepository.findByIdAndUser_Id(customStatusId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Custom status not found"));
+    }
+
     private Sort sanitizeSort(Sort sort) {
         if (sort == null || sort.isUnsorted()) {
             return Sort.by(Sort.Direction.ASC, "id");
@@ -226,6 +256,7 @@ public class TaskService {
                 task.getPriority(),
                 task.getDeadline(),
                 category != null ? category.getId() : null,
-                task.getDashboard() != null ? task.getDashboard().getId() : null);
+                task.getDashboard() != null ? task.getDashboard().getId() : null,
+                task.getCustomStatus() != null ? task.getCustomStatus().getId() : null);
     }
 }

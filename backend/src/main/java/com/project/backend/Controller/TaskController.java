@@ -24,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.project.backend.Dto.PagedResponseDto;
 import com.project.backend.Dto.TaskCategoryUpdateDto;
 import com.project.backend.Dto.TaskCreateDto;
+import com.project.backend.Dto.TaskCustomStatusUpdateDto;
 import com.project.backend.Dto.TaskFilterDto;
 import com.project.backend.Dto.TaskPatchDto;
 import com.project.backend.Dto.TaskResponseDto;
@@ -147,6 +148,15 @@ public class TaskController {
             @Valid @RequestBody TaskCategoryUpdateDto dto,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return taskService.changeCategory(id, dto, userDetails);
+    }
+
+    @PatchMapping("/{id}/custom-status")
+    @Operation(summary = "Assign a custom status to a task, or clear it by passing null")
+    public TaskResponseDto changeCustomStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody TaskCustomStatusUpdateDto dto,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return taskService.changeCustomStatus(id, dto, userDetails);
     }
 
     @DeleteMapping("/{id}")
