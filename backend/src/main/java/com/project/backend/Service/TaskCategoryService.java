@@ -1,13 +1,13 @@
 package com.project.backend.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.project.backend.Dto.TaskCategoryDto;
+import com.project.backend.Exception.ApiError;
 import com.project.backend.Mapper.TaskCategoryMapper;
 import com.project.backend.Model.TaskCategoryModel;
 import com.project.backend.Repository.TaskCategoryRepository;
@@ -28,9 +28,10 @@ public class TaskCategoryService {
                 .collect(Collectors.toList());
     }
 
-    public Optional<TaskCategoryDto> getCategoryById(Long id) {
+    public TaskCategoryDto getCategoryById(Long id) {
         return taskCategoryRepository.findById(id)
-                .map(taskCategoryMapper::toDto);
+                .map(taskCategoryMapper::toDto)
+                .orElseThrow(() -> ApiError.notFound("Category not found"));
     }
 
     public TaskCategoryDto createCategory(TaskCategoryDto categoryDto) {
@@ -40,6 +41,9 @@ public class TaskCategoryService {
     }
 
     public void deleteCategory(Long id) {
+        if (!taskCategoryRepository.existsById(id)) {
+            throw ApiError.notFound("Category not found");
+        }
         taskCategoryRepository.deleteById(id);
     }
 }

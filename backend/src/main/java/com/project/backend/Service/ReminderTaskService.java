@@ -1,12 +1,12 @@
 package com.project.backend.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.project.backend.Dto.ReminderTaskDto;
+import com.project.backend.Exception.ApiError;
 import com.project.backend.Model.ReminderTask;
 import com.project.backend.Repository.ReminderTaskRepository;
 
@@ -20,8 +20,9 @@ public class ReminderTaskService {
         return reminderTaskRepository.findAll();
     }
 
-    public Optional<ReminderTask> getReminderTaskById(Long id) {
-        return reminderTaskRepository.findById(id);
+    public ReminderTask getReminderTaskById(Long id) {
+        return reminderTaskRepository.findById(id)
+                .orElseThrow(() -> ApiError.notFound("Reminder not found"));
     }
 
     public ReminderTask createReminderTask(ReminderTaskDto reminderTaskDto) {
@@ -34,18 +35,18 @@ public class ReminderTaskService {
     }
 
     public ReminderTask updateReminderTask(Long id, ReminderTaskDto reminderTaskDto) {
-        Optional<ReminderTask> existingTask = reminderTaskRepository.findById(id);
-        if (existingTask.isPresent()) {
-            ReminderTask reminderTask = existingTask.get();
-            reminderTask.setTitle(reminderTaskDto.getTitle());
-            reminderTask.setDescription(reminderTaskDto.getDescription());
-            reminderTask.setReminderTime(reminderTaskDto.getReminderTime());
-            return reminderTaskRepository.save(reminderTask);
-        }
-        return null;
+        ReminderTask reminderTask = reminderTaskRepository.findById(id)
+                .orElseThrow(() -> ApiError.notFound("Reminder not found"));
+        reminderTask.setTitle(reminderTaskDto.getTitle());
+        reminderTask.setDescription(reminderTaskDto.getDescription());
+        reminderTask.setReminderTime(reminderTaskDto.getReminderTime());
+        return reminderTaskRepository.save(reminderTask);
     }
 
     public void deleteReminderTask(Long id) {
+        if (!reminderTaskRepository.existsById(id)) {
+            throw ApiError.notFound("Reminder not found");
+        }
         reminderTaskRepository.deleteById(id);
     }
 }

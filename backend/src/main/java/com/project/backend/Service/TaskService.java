@@ -10,10 +10,8 @@ import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.project.backend.Dto.TaskCategoryUpdateDto;
 import com.project.backend.Dto.TaskCreateDto;
@@ -23,6 +21,7 @@ import com.project.backend.Dto.TaskStatusUpdateDto;
 import com.project.backend.Dto.TaskUpdateDto;
 import com.project.backend.Enum.Priority;
 import com.project.backend.Enum.Status;
+import com.project.backend.Exception.ApiError;
 import com.project.backend.Model.CategoryModel;
 import com.project.backend.Model.Dashboard;
 import com.project.backend.Model.TaskModel;
@@ -194,7 +193,7 @@ public class TaskService {
 
     private UserModel requireAuthenticatedUser(CustomUserDetails userDetails) {
         if (userDetails == null || userDetails.user() == null || userDetails.user().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user is required");
+            throw ApiError.unauthorized("Authenticated user is required");
         }
 
         return userDetails.user();
@@ -202,23 +201,23 @@ public class TaskService {
 
     private TaskModel requireOwnedTask(Long taskId, Long userId) {
         return taskRepository.findByIdAndUser_Id(taskId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+                .orElseThrow(() -> ApiError.notFound("Task not found"));
     }
 
     private CategoryModel requireOwnedCategory(Long categoryId, Long userId) {
         return categoryRepository.findByIdAndUser_Id(categoryId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+                .orElseThrow(() -> ApiError.notFound("Category not found"));
     }
 
     private Dashboard requireOwnedDashboard(Long dashboardId, Long userId) {
         return dashboardRepository.findByIdAndUser_Id(dashboardId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dashboard not found"));
+                .orElseThrow(() -> ApiError.notFound("Dashboard not found"));
     }
 
     private String normalizeRequiredTitle(String title) {
         String trimmed = title == null ? null : title.trim();
         if (trimmed == null || trimmed.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title must not be blank");
+            throw ApiError.badRequest("Title must not be blank");
         }
         return trimmed;
     }
@@ -233,7 +232,7 @@ public class TaskService {
             return null;
         }
         if (trimmed.length() > 255) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Search query is too long");
+            throw ApiError.badRequest("Search query is too long");
         }
         return trimmed;
     }

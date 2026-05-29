@@ -1,8 +1,6 @@
 package com.project.backend.Controller;
 
 import java.util.List;
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -30,8 +28,7 @@ public class TaskCategoryController {
 
     @GetMapping("/{id}")
     public ResponseEntity<TaskCategoryDto> getCategoryById(@PathVariable Long id) {
-        Optional<TaskCategoryDto> category = taskCategoryService.getCategoryById(id);
-        return category.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return ResponseEntity.ok(taskCategoryService.getCategoryById(id));
     }
 
     @PostMapping

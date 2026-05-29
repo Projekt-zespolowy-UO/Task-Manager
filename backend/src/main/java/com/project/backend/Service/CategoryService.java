@@ -2,14 +2,13 @@ package com.project.backend.Service;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.project.backend.Dto.CategoryCreateDto;
 import com.project.backend.Dto.CategoryResponseDto;
 import com.project.backend.Dto.CategoryUpdateDto;
+import com.project.backend.Exception.ApiError;
 import com.project.backend.Model.CategoryModel;
 import com.project.backend.Model.UserModel;
 import com.project.backend.Repository.CategoryRepository;
@@ -67,7 +66,7 @@ public class CategoryService {
 
     private UserModel requireAuthenticatedUser(CustomUserDetails userDetails) {
         if (userDetails == null || userDetails.user() == null || userDetails.user().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user is required");
+            throw ApiError.unauthorized("Authenticated user is required");
         }
 
         return userDetails.user();
@@ -75,7 +74,7 @@ public class CategoryService {
 
     private CategoryModel requireOwnedCategory(Long categoryId, Long userId) {
         return categoryRepository.findByIdAndUser_Id(categoryId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+                .orElseThrow(() -> ApiError.notFound("Category not found"));
     }
 
     private CategoryResponseDto toResponse(CategoryModel category) {

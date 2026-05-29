@@ -2,11 +2,10 @@ package com.project.backend.Service;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.project.backend.Exception.ApiError;
 import com.project.backend.Model.Dashboard;
 import com.project.backend.Model.UserModel;
 import com.project.backend.Repository.DashboardRepository;
@@ -41,21 +40,21 @@ public class DashboardService {
     public Dashboard getDashboardById(Long id, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
         return dashboardRepository.findByIdAndUser_Id(id, user.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dashboard not found"));
+                .orElseThrow(() -> ApiError.notFound("Dashboard not found"));
     }
 
     @Transactional
     public void deleteDashboard(Long id, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
         Dashboard dashboard = dashboardRepository.findByIdAndUser_Id(id, user.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dashboard not found"));
+                .orElseThrow(() -> ApiError.notFound("Dashboard not found"));
 
         dashboardRepository.delete(dashboard);
     }
 
     private UserModel requireAuthenticatedUser(CustomUserDetails userDetails) {
         if (userDetails == null || userDetails.user() == null || userDetails.user().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user is required");
+            throw ApiError.unauthorized("Authenticated user is required");
         }
 
         return userDetails.user();
@@ -63,7 +62,7 @@ public class DashboardService {
 
     private String normalizeName(String name) {
         if (name == null || name.trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dashboard name is required");
+            throw ApiError.badRequest("Dashboard name is required");
         }
 
         return name.trim();
