@@ -10,11 +10,10 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.project.backend.Exception.ApiError;
 import com.project.backend.Model.PasswordResetCodeModel;
 import com.project.backend.Model.UserModel;
 import com.project.backend.Repository.PasswordResetCodeRepository;
@@ -43,7 +42,7 @@ public class PasswordResetCodeService {
                 now.minus(RATE_LIMIT_WINDOW));
 
         if (recentCodes >= MAX_CODES_PER_WINDOW) {
-            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Too many password reset requests");
+            throw ApiError.tooManyRequests("Too many password reset requests");
         }
 
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
@@ -86,7 +85,7 @@ public class PasswordResetCodeService {
                     .getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(hash);
         } catch (Exception e) {
-            throw new IllegalStateException("Unable to hash reset code", e);
+            throw ApiError.internal("Unable to hash reset code", e);
         }
     }
 }
