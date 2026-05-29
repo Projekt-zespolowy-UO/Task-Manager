@@ -8,6 +8,11 @@ document.addEventListener("DOMContentLoaded", () => {
     { id: "IN_PROGRESS", name: "In progress" },
     { id: "DONE", name: "Done" },
   ];
+  const GANTT_ZOOM_LEVELS = [
+    { id: "compact", name: "Kompakt", dayWidth: 18, scaleStep: 14 },
+    { id: "week", name: "Tydzien", dayWidth: 34, scaleStep: 7 },
+    { id: "day", name: "Dzien", dayWidth: 64, scaleStep: 1 },
+  ];
 
   const addCategoryBtn = document.getElementById("add-category-btn");
   const exportCsvBtn = document.getElementById("export-csv-btn");
@@ -26,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const categoryTabs = document.getElementById("category-tabs");
   const searchInput = document.querySelector(".search-input");
   const clearSearchButton = document.querySelector(".clear-search");
+  const viewSelect = document.getElementById("view-select");
 
   const panelNameInput = document.getElementById("panel-name-input");
   const taskNameInput = document.getElementById("task-name-input");
@@ -52,6 +58,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let activePanelMenuPosition = null;
   let editingTaskId = null;
   let taskDetailsOpen = null;
+  let activeView = viewSelect?.value || "board";
+  let ganttZoomIndex = 1;
+  let ganttScrollTarget = null;
   let categories = [];
   let tasks = [];
 
@@ -146,6 +155,63 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  function formatDate(value) {
+    if (!value) {
+      return "Brak terminu";
+    }
+
+    const date = new Date(`${value}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString("pl-PL");
+  }
+
+  function formatDateObject(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return date.toLocaleDateString("pl-PL");
+  }
+
+  function addDays(date, days) {
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + days);
+    return nextDate;
+  }
+
+  function getDaysBetween(startDate, endDate) {
+    const dayMs = 24 * 60 * 60 * 1000;
+    return Math.round((endDate - startDate) / dayMs);
+  }
+
+  function getGanttZoom() {
+    return GANTT_ZOOM_LEVELS[ganttZoomIndex] || GANTT_ZOOM_LEVELS[1];
+  }
+
+  function getFilteredTasks() {
+    const query = normalizeSearchValue(searchInput?.value || "");
+
+    return tasks.filter((task) => {
+      const inActiveCategory =
+        !activeCategoryId ||
+        Number(getTaskCategoryId(task)) === Number(activeCategoryId);
+      const title = String(task.title || task.name || "").toLowerCase();
+      const description = String(task.description || "").toLowerCase();
+      const matchesSearch =
+        query === "" || title.includes(query) || description.includes(query);
+
+      return inActiveCategory && matchesSearch;
+    });
+  }
+
+  function getPriorityClass(priority) {
+    return `priority-${String(priority || "medium").toLowerCase()}`;
+  }
+
   function getFloatingMenuPosition(triggerElement, menuWidth = 160) {
     const rect = triggerElement.getBoundingClientRect();
     const viewportPadding = 12;
@@ -166,6 +232,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function applyTaskSearch() {
+    if (activeView === "gantt") {
+      renderDashboard();
+      return;
+    }
+
     const query = normalizeSearchValue(searchInput?.value || "");
     const panels = container.querySelectorAll(".task-panel");
 
@@ -453,6 +524,170 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   }
 
+  function renderGanttView() {
+    const visibleTasks = getFilteredTasks();
+    const datedTasks = visibleTasks.filter((task) => task.deadline);
+    const undatedTasks = visibleTasks.filter((task) => !task.deadline);
+    const dayMs = 24 * 60 * 60 * 1000;
+    const zoom = getGanttZoom();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const taskDates = datedTasks
+      .map((task) => new Date(`${task.deadline}T00:00:00`))
+      .filter((date) => !Number.isNaN(date.getTime()));
+    const minDate = taskDates.length
+      ? new Date(Math.min(today.getTime(), ...taskDates.map((date) => date.getTime())))
+      : today;
+    const maxDate = taskDates.length
+      ? new Date(Math.max(today.getTime(), ...taskDates.map((date) => date.getTime())))
+      : new Date(today.getTime() + 6 * dayMs);
+    const totalDays = Math.max(1, Math.round((maxDate - minDate) / dayMs) + 1);
+    const timelineWidth = Math.max(560, totalDays * zoom.dayWidth);
+    const gridStyle = `style="--gantt-timeline-width:${timelineWidth}px; --gantt-day-width:${zoom.dayWidth}px;"`;
+    const scaleMarkers = [];
+    const todayOffset = getDaysBetween(minDate, today);
+
+    for (let offset = 0; offset < totalDays; offset += zoom.scaleStep) {
+      scaleMarkers.push({
+        date: addDays(minDate, offset),
+        left: offset * zoom.dayWidth,
+      });
+    }
+
+    container.className = "task-container gantt-view";
+
+    if (!visibleTasks.length) {
+      container.innerHTML = `
+        <div class="gantt-wrapper">
+          <div class="empty-state">Brak zadan do wyswietlenia.</div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="gantt-wrapper">
+        <div class="gantt-toolbar">
+          <div class="gantt-summary">
+            ${visibleTasks.length} zadan - ${escapeHtml(formatDateObject(minDate))} - ${escapeHtml(formatDateObject(maxDate))}
+          </div>
+          <div class="gantt-controls">
+            <button type="button" data-action="gantt-zoom-out">-</button>
+            <span>${escapeHtml(zoom.name)}</span>
+            <button type="button" data-action="gantt-zoom-in">+</button>
+            <button type="button" data-action="gantt-today">Dzisiaj</button>
+            <button type="button" data-action="gantt-fit">Dopasuj</button>
+          </div>
+        </div>
+        <div class="gantt-scroll">
+          <div class="gantt-header" ${gridStyle}>
+            <div class="gantt-sticky-cell gantt-header-cell">Zadanie</div>
+            <div class="gantt-scale">
+              ${scaleMarkers
+                .map(
+                  (marker) => `
+                    <span style="left:${marker.left}px;">
+                      ${escapeHtml(formatDateObject(marker.date))}
+                    </span>
+                  `
+                )
+                .join("")}
+              ${
+                todayOffset >= 0 && todayOffset < totalDays
+                  ? `<span class="gantt-today-line" style="left:${todayOffset * zoom.dayWidth}px;"></span>`
+                  : ""
+              }
+            </div>
+            <div class="gantt-header-cell gantt-actions-cell">Akcje</div>
+          </div>
+          ${datedTasks
+            .map((task) => {
+              const statusId = normalizeStatus(task.status);
+              const deadline = new Date(`${task.deadline}T00:00:00`);
+              const endOffset = Math.max(0, Math.round((deadline - minDate) / dayMs));
+              const barLeft = endOffset * zoom.dayWidth;
+              const barWidth = Math.max(18, Math.min(zoom.dayWidth, 54));
+
+              return `
+                <div
+                  class="gantt-row gantt-task-row"
+                  ${gridStyle}
+                  data-task-id="${task.id}"
+                  data-status-id="${statusId}"
+                  data-description="${escapeHtml(task.description || "")}"
+                >
+                  <div class="gantt-task-info gantt-sticky-cell">
+                    <span class="gantt-task-title">${escapeHtml(task.title || task.name || "Task")}</span>
+                    <span class="gantt-task-meta">${escapeHtml(getStatusName(statusId))} - ${escapeHtml(task.priority || "MEDIUM")}</span>
+                  </div>
+                  <div class="gantt-timeline">
+                    ${
+                      todayOffset >= 0 && todayOffset < totalDays
+                        ? `<span class="gantt-today-line" style="left:${todayOffset * zoom.dayWidth}px;"></span>`
+                        : ""
+                    }
+                    <span
+                      class="gantt-bar ${getPriorityClass(task.priority)}"
+                      style="left:${barLeft}px; width:${barWidth}px;"
+                      title="${escapeHtml(formatDate(task.deadline))}"
+                    ></span>
+                  </div>
+                  <div class="gantt-row-actions gantt-actions-cell">
+                    <button type="button" data-action="expand-task">Rozwin</button>
+                    <button type="button" data-action="move-task">Status</button>
+                    <button type="button" data-action="edit-task">Edytuj</button>
+                    <button type="button" data-action="delete-task">Usun</button>
+                  </div>
+                </div>
+              `;
+            })
+            .join("")}
+          ${undatedTasks
+            .map((task) => {
+              const statusId = normalizeStatus(task.status);
+
+              return `
+                <div
+                  class="gantt-row gantt-task-row"
+                  ${gridStyle}
+                  data-task-id="${task.id}"
+                  data-status-id="${statusId}"
+                  data-description="${escapeHtml(task.description || "")}"
+                >
+                  <div class="gantt-task-info gantt-sticky-cell">
+                    <span class="gantt-task-title">${escapeHtml(task.title || task.name || "Task")}</span>
+                    <span class="gantt-task-meta">${escapeHtml(getStatusName(statusId))} - ${escapeHtml(task.priority || "MEDIUM")}</span>
+                  </div>
+                  <div class="gantt-timeline">
+                    <span class="gantt-task-meta">Brak terminu</span>
+                  </div>
+                  <div class="gantt-row-actions gantt-actions-cell">
+                    <button type="button" data-action="expand-task">Rozwin</button>
+                    <button type="button" data-action="move-task">Status</button>
+                    <button type="button" data-action="edit-task">Edytuj</button>
+                    <button type="button" data-action="delete-task">Usun</button>
+                  </div>
+                </div>
+              `;
+            })
+            .join("")}
+        </div>
+      </div>
+    `;
+
+    const ganttScroll = container.querySelector(".gantt-scroll");
+
+    if (ganttScroll && ganttScrollTarget === "today") {
+      ganttScroll.scrollLeft = Math.max(
+        0,
+        todayOffset * zoom.dayWidth - ganttScroll.clientWidth / 2
+      );
+    }
+
+    ganttScrollTarget = null;
+  }
+
   function renderDashboard() {
     renderCategoryTabs();
 
@@ -465,6 +700,12 @@ document.addEventListener("DOMContentLoaded", () => {
       activeCategoryId = Number(categories[0].id);
     }
 
+    if (activeView === "gantt") {
+      renderGanttView();
+      return;
+    }
+
+    container.className = "task-container";
     container.innerHTML =
       statusPanels.map((panel) => renderPanelElement(panel)).join("") +
       renderAddStatusButton();
@@ -503,6 +744,109 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderDashboard();
+  }
+
+  function handleTaskAction(action, taskElement) {
+    if (!taskElement) {
+      return false;
+    }
+
+    const taskId = Number(taskElement.dataset.taskId);
+    const taskStatusId = taskElement.dataset.statusId;
+
+    if (action === "expand-task") {
+      const task = tasks.find((item) => Number(item.id) === taskId);
+      activeTaskMenuStatusId = null;
+      openTaskDetails(task?.title || "Task", task?.description || "");
+      return true;
+    }
+
+    if (action === "edit-task") {
+      const task = tasks.find((item) => Number(item.id) === taskId);
+
+      if (!task) {
+        return true;
+      }
+
+      activeTaskMenuStatusId = null;
+      activeTaskMenuPosition = null;
+      openTaskEditModal(task);
+      return true;
+    }
+
+    if (action === "delete-task") {
+      const confirmed = confirm("Usunac zadanie?");
+
+      if (!confirmed) {
+        return true;
+      }
+
+      apiRequest(`${TASKS_API_PATH}/${taskId}`, {
+        method: "DELETE",
+      })
+        .then(() => {
+          tasks = tasks.filter((item) => Number(item.id) !== taskId);
+          activeTaskMenuStatusId = null;
+          activeTaskMenuPosition = null;
+          renderDashboard();
+        })
+        .catch((error) => {
+          console.error("Failed to delete task:", error);
+          alert("Nie udalo sie usunac zadania.");
+        });
+      return true;
+    }
+
+    if (action === "move-task") {
+      if (statusPanels.length <= 1) {
+        alert("Brak innego statusu do przeniesienia.");
+        return true;
+      }
+
+      const currentStatus = normalizeStatus(taskStatusId);
+      const availableStatuses = statusPanels.filter(
+        (panel) => panel.id !== currentStatus
+      );
+      const selectedLabel = prompt(
+        `Wybierz status:\n${availableStatuses
+          .map((panel, index) => `${index + 1}. ${panel.name}`)
+          .join("\n")}`
+      );
+      const selectedStatus = availableStatuses[Number(selectedLabel) - 1];
+
+      if (!selectedStatus) {
+        return true;
+      }
+
+      apiRequest(`${TASKS_API_PATH}/${taskId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: toBackendStatus(selectedStatus.id),
+        }),
+      })
+        .then((updatedTask) => {
+          tasks = tasks.map((item) =>
+            Number(item.id) === taskId
+              ? {
+                  ...item,
+                  ...updatedTask,
+                  status: normalizeStatus(updatedTask.status),
+                }
+              : item
+          );
+
+          activeTaskMenuStatusId = null;
+          activeTaskMenuPosition = null;
+          renderDashboard();
+        })
+        .catch((error) => {
+          console.error("Failed to move task:", error);
+          alert("Nie udalo sie zmienic statusu zadania.");
+        });
+      return true;
+    }
+
+    return false;
   }
 
   if (addCategoryBtn) {
@@ -648,6 +992,17 @@ document.addEventListener("DOMContentLoaded", () => {
     searchInput.addEventListener("input", applyTaskSearch);
   }
 
+  if (viewSelect) {
+    viewSelect.addEventListener("change", () => {
+      activeView = viewSelect.value;
+      activePanelMenuStatusId = null;
+      activeTaskMenuStatusId = null;
+      activePanelMenuPosition = null;
+      activeTaskMenuPosition = null;
+      renderDashboard();
+    });
+  }
+
   if (clearSearchButton) {
     clearSearchButton.addEventListener("click", () => {
       if (!searchInput) {
@@ -754,7 +1109,33 @@ document.addEventListener("DOMContentLoaded", () => {
   container.addEventListener("click", (event) => {
     const action = event.target.dataset.action;
     const panelElement = event.target.closest(".task-panel");
-    const taskElement = event.target.closest(".task-item");
+    const taskElement = event.target.closest(
+      ".task-item, .gantt-task-row"
+    );
+
+    if (action === "gantt-zoom-out") {
+      ganttZoomIndex = Math.max(0, ganttZoomIndex - 1);
+      renderDashboard();
+      return;
+    }
+
+    if (action === "gantt-zoom-in") {
+      ganttZoomIndex = Math.min(GANTT_ZOOM_LEVELS.length - 1, ganttZoomIndex + 1);
+      renderDashboard();
+      return;
+    }
+
+    if (action === "gantt-fit") {
+      ganttZoomIndex = 0;
+      renderDashboard();
+      return;
+    }
+
+    if (action === "gantt-today") {
+      ganttScrollTarget = "today";
+      renderDashboard();
+      return;
+    }
 
     if (action === "add-status") {
       const newStatusName = prompt("Nazwa nowego statusu:");
@@ -769,6 +1150,10 @@ document.addEventListener("DOMContentLoaded", () => {
         { id: createStatusId(trimmedName), name: trimmedName },
       ];
       renderDashboard();
+      return;
+    }
+
+    if (taskElement && !panelElement && handleTaskAction(action, taskElement)) {
       return;
     }
 
