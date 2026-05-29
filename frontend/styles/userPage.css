@@ -242,6 +242,29 @@ header {
   flex-shrink: 0;
 }
 
+.view-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgb(170, 171, 172);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.view-selector select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+
+.view-selector option {
+  background: #111;
+  color: white;
+}
+
 .category-tab-item {
   position: relative;
   flex-shrink: 0;
