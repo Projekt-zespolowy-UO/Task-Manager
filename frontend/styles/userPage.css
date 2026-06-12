@@ -776,3 +776,20 @@ header {
     justify-content: flex-end;
   }
 }
+
+.task-item {
+  cursor: grab;
+}
+
+.task-item:active {
+  cursor: grabbing;
+}
+
+.task-item.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+.task-panel {
+  min-height: 120px;
+}
