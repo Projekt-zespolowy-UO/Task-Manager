@@ -3,7 +3,6 @@ package com.project.backend.Dto;
 import java.time.LocalDate;
 
 import com.project.backend.Enum.Priority;
-import com.project.backend.Enum.Status;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,7 +21,7 @@ public class TaskCreateDto {
     @Size(max = 5000)
     private String description;
 
-    private Status status;
+    private Long statusId;
 
     private Priority priority;
     private LocalDate deadline;
