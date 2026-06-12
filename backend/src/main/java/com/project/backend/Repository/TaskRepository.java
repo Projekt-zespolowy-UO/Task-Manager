@@ -11,10 +11,10 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.project.backend.Enum.Status;
 import com.project.backend.Model.TaskModel;
 
 public interface TaskRepository extends JpaRepository<TaskModel, Long> {
+
     List<TaskModel> findByUser_IdOrderByIdAsc(Long userId);
 
     List<TaskModel> findByUser_IdAndCategory_User_IdOrderByIdAsc(Long userId, Long categoryUserId);
@@ -29,9 +29,10 @@ public interface TaskRepository extends JpaRepository<TaskModel, Long> {
             SELECT t
             FROM TaskModel t
             LEFT JOIN FETCH t.category c
+            LEFT JOIN FETCH t.status s
             WHERE t.user.id = :userId
               AND (:categoryId IS NULL OR c.id = :categoryId)
-              AND (:status IS NULL OR t.status = :status)
+              AND (:statusId IS NULL OR s.id = :statusId)
               AND (
                     :search IS NULL
                     OR LOWER(t.title) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -42,7 +43,7 @@ public interface TaskRepository extends JpaRepository<TaskModel, Long> {
     Slice<TaskModel> findOwnedTasksForCsvExport(
             @Param("userId") Long userId,
             @Param("categoryId") Long categoryId,
-            @Param("status") Status status,
+            @Param("statusId") Long statusId,
             @Param("search") String search,
             Pageable pageable);
 
@@ -51,15 +52,16 @@ public interface TaskRepository extends JpaRepository<TaskModel, Long> {
             FROM TaskModel t
             JOIN FETCH t.user u
             LEFT JOIN FETCH t.category c
+            LEFT JOIN FETCH t.status s
             WHERE t.deadline IS NOT NULL
               AND t.deadline BETWEEN :fromDate AND :toDate
               AND t.dueNotificationSentAt IS NULL
               AND u.email IS NOT NULL
-              AND (t.status IS NULL OR t.status <> :doneStatus)
+              AND (s IS NULL OR s.systemKey <> :doneSystemKey)
             ORDER BY t.deadline ASC, t.id ASC
             """)
     List<TaskModel> findTasksForDueNotifications(
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
-            @Param("doneStatus") Status doneStatus);
+            @Param("doneSystemKey") String doneSystemKey);
 }
