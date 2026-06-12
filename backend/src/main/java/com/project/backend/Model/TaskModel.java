@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.project.backend.Enum.Priority;
-import com.project.backend.Enum.Status;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -28,15 +27,20 @@ import lombok.Setter;
 public class TaskModel {
 
     @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String title;
+
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    private Status status;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_id")
+    private TaskStatusModel status;
+
     @Enumerated(EnumType.STRING)
     private Priority priority;
+
     private LocalDate deadline;
 
     @Column(name = "due_notification_sent_at")
@@ -54,5 +58,4 @@ public class TaskModel {
     @JoinColumn(name = "dashboard_id")
     @JsonIgnore
     private Dashboard dashboard;
-
 }
