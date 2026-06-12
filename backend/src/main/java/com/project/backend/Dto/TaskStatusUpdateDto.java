@@ -1,7 +1,5 @@
 package com.project.backend.Dto;
 
-import com.project.backend.Enum.Status;
-
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,5 +9,5 @@ import lombok.Setter;
 public class TaskStatusUpdateDto {
 
     @NotNull
-    private Status status;
+    private Long statusId;
 }
