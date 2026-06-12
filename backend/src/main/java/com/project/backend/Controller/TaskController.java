@@ -26,7 +26,6 @@ import com.project.backend.Dto.TaskPatchDto;
 import com.project.backend.Dto.TaskResponseDto;
 import com.project.backend.Dto.TaskStatusUpdateDto;
 import com.project.backend.Dto.TaskUpdateDto;
-import com.project.backend.Enum.Status;
 import com.project.backend.Security.CustomUserDetails;
 import com.project.backend.Service.TaskService;
 
@@ -57,11 +56,12 @@ public class TaskController {
     public ResponseEntity<StreamingResponseBody> exportTasksCsv(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Status status,
+            @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String search) {
+
         String filename = "tasks-" + LocalDate.now() + ".csv";
         StreamingResponseBody responseBody = outputStream ->
-                taskService.writeTasksCsv(outputStream, userDetails, categoryId, status, search);
+                taskService.writeTasksCsv(outputStream, userDetails, categoryId, statusId, search);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
