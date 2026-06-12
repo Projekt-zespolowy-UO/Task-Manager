@@ -3,7 +3,6 @@ package com.project.backend.Dto;
 import java.time.LocalDate;
 
 import com.project.backend.Enum.Priority;
-import com.project.backend.Enum.Status;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,7 +22,7 @@ public class TaskUpdateDto {
     private String description;
 
     @NotNull
-    private Status status;
+    private Long statusId;
 
     @NotNull
     private Priority priority;
