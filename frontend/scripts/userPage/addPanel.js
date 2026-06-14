@@ -1,14 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const CATEGORIES_API_PATH = "/categories";
-  const TASKS_API_PATH = "/tasks";
-  const TASKS_EXPORT_API_PATH = "/tasks/export.csv";
+  const DASHBOARDS_API_PATH = "/api/dashboards";
+  const CATEGORIES_API_PATH = "/api/categories";
+  const TASKS_API_PATH = "/api/tasks";
+  const TASKS_EXPORT_API_PATH = "/api/tasks/export.csv";
+  const STATUS_API_PATH = "/api/statuses";
   let draggedTaskId = null;
 
-  const DEFAULT_STATUS_PANELS = [
-    { id: "BACKLOG", name: "Backlog" },
-    { id: "IN_PROGRESS", name: "In progress" },
-    { id: "DONE", name: "Done" },
-  ];
   const GANTT_ZOOM_LEVELS = [
     { id: "compact", name: "Kompakt", dayWidth: 18, scaleStep: 14 },
     { id: "week", name: "Tydzien", dayWidth: 34, scaleStep: 7 },
@@ -49,9 +46,10 @@ document.addEventListener("DOMContentLoaded", () => {
     "task-details-description",
   );
 
-  let statusPanels = [...DEFAULT_STATUS_PANELS];
+  let statusPanels = [];
   let activeCategoryId = null;
-  let activeStatusId = statusPanels[0].id;
+  let activeDashboardId = null;
+  let activeStatusId = statusPanels[0]?.id || "";
   let openCategoryMenu = null;
   let activeTaskMenuStatusId = null;
   let activePanelMenuStatusId = null;
@@ -62,6 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let activeView = viewSelect?.value || "board";
   let ganttZoomIndex = 1;
   let ganttScrollTarget = null;
+  let dashboards = [];
   let categories = [];
   let tasks = [];
 
@@ -78,43 +77,18 @@ document.addEventListener("DOMContentLoaded", () => {
     return value.trim().toLowerCase();
   }
 
-  function normalizeStatus(value) {
-    if (!statusPanels.length) {
-      return "";
-    }
-
-    const normalizedValue = String(value || "")
-      .trim()
-      .toUpperCase();
-    const aliases = {
-      TODO: "BACKLOG",
-      "TO DO": "BACKLOG",
-      INPROGRESS: "IN_PROGRESS",
-      "IN PROGRESS": "IN_PROGRESS",
-    };
-    const statusId = aliases[normalizedValue] || normalizedValue;
-
-    return statusPanels.some((panel) => panel.id === statusId)
-      ? statusId
-      : statusPanels[0].id;
-  }
-
-  function toBackendStatus(statusId) {
-    const normalizedStatus = normalizeStatus(statusId);
-
-    if (normalizedStatus === "IN_PROGRESS" || normalizedStatus === "DONE") {
-      return normalizedStatus;
-    }
-
-    return "TODO";
-  }
-
   function createTaskPayload() {
+    if (!activeStatusId || activeStatusId === "") {
+      return null;
+    }
+
     const payload = {
       title: taskNameInput.value.trim(),
       description: taskDescriptionInput.value.trim(),
       priority: taskPriorityInput.value,
       categoryId: Number(taskCategoryInput.value || activeCategoryId),
+      dashboardId: activeDashboardId,
+      statusId: Number(activeStatusId),
     };
 
     if (taskDeadlineInput.value) {
@@ -122,25 +96,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     return payload;
-  }
-
-  function createStatusId(name) {
-    const baseId =
-      String(name || "")
-        .trim()
-        .toUpperCase()
-        .replace(/[^A-Z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "") || `STATUS_${Date.now()}`;
-
-    let candidateId = baseId;
-    let suffix = 2;
-
-    while (statusPanels.some((panel) => panel.id === candidateId)) {
-      candidateId = `${baseId}_${suffix}`;
-      suffix += 1;
-    }
-
-    return candidateId;
   }
 
   function getTaskCategoryId(task) {
@@ -151,8 +106,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getStatusName(statusId) {
     return (
-      statusPanels.find((panel) => panel.id === normalizeStatus(statusId))
-        ?.name || "Status"
+      statusPanels.find((panel) => panel.id === String(statusId))?.name ||
+      "Status"
     );
   }
 
@@ -310,7 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function openTaskModal(statusId) {
-    activeStatusId = normalizeStatus(statusId);
+    activeStatusId = String(statusId || "");
     editingTaskId = null;
     taskModalTitle.textContent = "Dodaj nowe zadanie";
     taskSaveBtn.textContent = "Dodaj";
@@ -326,7 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function openTaskEditModal(task) {
     editingTaskId = Number(task.id);
-    activeStatusId = normalizeStatus(task.status);
+    activeStatusId = String(task.statusId || "");
     taskModalTitle.textContent = "Edytuj zadanie";
     taskSaveBtn.textContent = "Zapisz";
     renderTaskCategoryOptions(getTaskCategoryId(task));
@@ -346,7 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
     taskPriorityInput.value = "MEDIUM";
     taskDeadlineInput.value = "";
     taskCategoryInput.innerHTML = "";
-    activeStatusId = statusPanels[0]?.id || "";
+    activeStatusId = "";
     editingTaskId = null;
     taskModalTitle.textContent = "Dodaj nowe zadanie";
     taskSaveBtn.textContent = "Dodaj";
@@ -418,25 +373,28 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderTaskCategoryOptions(selectedCategoryId) {
-    taskCategoryInput.innerHTML = categories
-      .map(
-        (category) => `
-          <option
-            value="${category.id}"
-            ${Number(category.id) === Number(selectedCategoryId) ? "selected" : ""}
-          >
-            ${escapeHtml(category.name || "Kategoria")}
-          </option>
-        `,
-      )
-      .join("");
+    taskCategoryInput.innerHTML = `
+      <option value="">Brak kategorii</option>
+      ${categories
+        .map(
+          (category) => `
+            <option
+              value="${category.id}"
+              ${Number(category.id) === Number(selectedCategoryId) ? "selected" : ""}
+            >
+              ${escapeHtml(category.name || "Kategoria")}
+            </option>
+          `,
+        )
+        .join("")}
+    `;
   }
 
   function renderTaskElement(task) {
     const taskId = task.id;
     const taskName = task.title || task.name || "Task";
     const taskDescription = task.description || "";
-    const statusId = normalizeStatus(task.status);
+    const statusId = String(task.statusId || "");
     const isMenuOpen = activeTaskMenuStatusId === `${statusId}:${taskId}`;
     const menuStyle =
       isMenuOpen && activeTaskMenuPosition
@@ -484,7 +442,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const panelTasks = tasks.filter(
       (task) =>
         Number(getTaskCategoryId(task)) === Number(activeCategoryId) &&
-        normalizeStatus(task.status) === panel.id,
+        String(task.statusId) === String(panel.id),
     );
     const isMenuOpen = activePanelMenuStatusId === panel.id;
     const menuStyle =
@@ -539,10 +497,14 @@ document.addEventListener("DOMContentLoaded", () => {
       .map((task) => new Date(`${task.deadline}T00:00:00`))
       .filter((date) => !Number.isNaN(date.getTime()));
     const minDate = taskDates.length
-      ? new Date(Math.min(today.getTime(), ...taskDates.map((date) => date.getTime())))
+      ? new Date(
+          Math.min(today.getTime(), ...taskDates.map((date) => date.getTime())),
+        )
       : today;
     const maxDate = taskDates.length
-      ? new Date(Math.max(today.getTime(), ...taskDates.map((date) => date.getTime())))
+      ? new Date(
+          Math.max(today.getTime(), ...taskDates.map((date) => date.getTime())),
+        )
       : new Date(today.getTime() + 6 * dayMs);
     const totalDays = Math.max(1, Math.round((maxDate - minDate) / dayMs) + 1);
     const timelineWidth = Math.max(560, totalDays * zoom.dayWidth);
@@ -592,7 +554,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <span style="left:${marker.left}px;">
                       ${escapeHtml(formatDateObject(marker.date))}
                     </span>
-                  `
+                  `,
                 )
                 .join("")}
               ${
@@ -605,9 +567,12 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
           ${datedTasks
             .map((task) => {
-              const statusId = normalizeStatus(task.status);
+              const statusId = String(task.statusId || "");
               const deadline = new Date(`${task.deadline}T00:00:00`);
-              const endOffset = Math.max(0, Math.round((deadline - minDate) / dayMs));
+              const endOffset = Math.max(
+                0,
+                Math.round((deadline - minDate) / dayMs),
+              );
               const barLeft = endOffset * zoom.dayWidth;
               const barWidth = Math.max(18, Math.min(zoom.dayWidth, 54));
 
@@ -647,7 +612,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .join("")}
           ${undatedTasks
             .map((task) => {
-              const statusId = normalizeStatus(task.status);
+              const statusId = String(task.statusId || "");
 
               return `
                 <div
@@ -683,7 +648,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ganttScroll && ganttScrollTarget === "today") {
       ganttScroll.scrollLeft = Math.max(
         0,
-        todayOffset * zoom.dayWidth - ganttScroll.clientWidth / 2
+        todayOffset * zoom.dayWidth - ganttScroll.clientWidth / 2,
       );
     }
 
@@ -691,23 +656,22 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderDashboard() {
+    console.log("🎨 renderDashboard() called");
+    console.log("📊 categories:", categories);
+    console.log("📊 statusPanels:", statusPanels);
+    console.log("📊 activeDashboardId:", activeDashboardId);
+
     renderCategoryTabs();
 
-    if (!categories.length) {
+    // Pokazuj statusy zawsze, niezależnie od kategorii
+    if (!statusPanels.length) {
+      console.warn("⚠️ No status panels! Showing only add-status button");
       container.innerHTML = renderAddStatusButton();
       return;
     }
 
-    if (!activeCategoryId) {
-      activeCategoryId = Number(categories[0].id);
-    }
-
-    if (activeView === "gantt") {
-      renderGanttView();
-      return;
-    }
-
     container.className = "task-container";
+    console.log("✅ Rendering", statusPanels.length, "status panels");
     container.innerHTML =
       statusPanels.map((panel) => renderPanelElement(panel)).join("") +
       renderAddStatusButton();
@@ -717,12 +681,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadDashboardData() {
     try {
+      let loadedDashboards = await apiRequest(DASHBOARDS_API_PATH, {
+        method: "GET",
+      });
+
+      dashboards = Array.isArray(loadedDashboards) ? loadedDashboards : [];
+
+      // Jeśli nie ma dashboardów, automatycznie utwórz jeden
+      if (dashboards.length === 0) {
+        console.warn("⚠️ No dashboards found, creating default dashboard...");
+        try {
+          const newDashboard = await apiRequest(DASHBOARDS_API_PATH, {
+            method: "POST",
+            body: JSON.stringify({ name: "Mój Dashboard" }),
+          });
+          dashboards = [newDashboard];
+          console.log("✅ Default dashboard created:", newDashboard);
+        } catch (createError) {
+          console.error("❌ Failed to create default dashboard:", createError);
+        }
+      }
+
+      activeDashboardId = dashboards[0]?.id || null;
+      console.log("✅ Dashboards loaded:", dashboards);
+      console.log("✅ Active Dashboard ID:", activeDashboardId);
+    } catch (error) {
+      console.warn(
+        "Could not load dashboards. Endpoint may not exist yet:",
+        error,
+      );
+    }
+
+    try {
       const loadedCategories = await apiRequest(CATEGORIES_API_PATH, {
         method: "GET",
       });
 
       categories = Array.isArray(loadedCategories) ? loadedCategories : [];
       activeCategoryId = categories[0]?.id || null;
+      console.log("✅ Categories loaded:", categories);
+      console.log("✅ Active Category ID:", activeCategoryId);
+
+      // Load statuses for the active category
+      if (activeCategoryId) {
+        await loadStatuses();
+      }
     } catch (error) {
       console.warn(
         "Could not load categories. Endpoint may not exist yet:",
@@ -738,7 +741,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tasks = Array.isArray(loadedTasks)
         ? loadedTasks.map((task) => ({
             ...task,
-            status: normalizeStatus(task.status),
+            status: String(task.statusId || ""),
           }))
         : [];
     } catch (error) {
@@ -746,6 +749,40 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderDashboard();
+  }
+
+  async function loadStatuses() {
+    if (!activeCategoryId) {
+      console.warn("⚠️ No activeCategoryId - no statuses available");
+      statusPanels = [];
+      return;
+    }
+
+    try {
+      const loadedStatuses = await apiRequest(
+        `${STATUS_API_PATH}?categoryId=${activeCategoryId}`,
+        {
+          method: "GET",
+        },
+      );
+
+      console.log("✅ Statuses loaded from backend:", loadedStatuses);
+
+      if (Array.isArray(loadedStatuses) && loadedStatuses.length) {
+        statusPanels = loadedStatuses.map((status) => ({
+          id: String(status.id),
+          backendId: status.id,
+          name: status.name,
+        }));
+      } else {
+        console.warn("⚠️ No statuses from backend - empty array");
+        statusPanels = [];
+      }
+      console.log("✅ Final statusPanels:", statusPanels);
+    } catch (err) {
+      console.error("❌ Cannot load statuses", err);
+      statusPanels = [];
+    }
   }
 
   function handleTaskAction(action, taskElement) {
@@ -805,14 +842,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return true;
       }
 
-      const currentStatus = normalizeStatus(taskStatusId);
+      const currentStatus = String(taskStatusId || "");
       const availableStatuses = statusPanels.filter(
-        (panel) => panel.id !== currentStatus
+        (panel) => panel.id !== currentStatus,
       );
       const selectedLabel = prompt(
         `Wybierz status:\n${availableStatuses
           .map((panel, index) => `${index + 1}. ${panel.name}`)
-          .join("\n")}`
+          .join("\n")}`,
       );
       const selectedStatus = availableStatuses[Number(selectedLabel) - 1];
 
@@ -823,7 +860,7 @@ document.addEventListener("DOMContentLoaded", () => {
       apiRequest(`${TASKS_API_PATH}/${taskId}/status`, {
         method: "PATCH",
         body: JSON.stringify({
-          status: toBackendStatus(selectedStatus.id),
+          statusId: Number(selectedStatus.id),
         }),
       })
         .then((updatedTask) => {
@@ -832,9 +869,8 @@ document.addEventListener("DOMContentLoaded", () => {
               ? {
                   ...item,
                   ...updatedTask,
-                  status: normalizeStatus(updatedTask.status),
                 }
-              : item
+              : item,
           );
 
           activeTaskMenuStatusId = null;
@@ -858,19 +894,49 @@ document.addEventListener("DOMContentLoaded", () => {
   if (exportCsvBtn) {
     exportCsvBtn.addEventListener("click", async () => {
       exportCsvBtn.disabled = true;
-      exportCsvBtn.textContent = "Exporting...";
+      exportCsvBtn.textContent = "Testowanie...";
 
       try {
+        // First, test if regular API request works
+        console.log("🧪 TEST: Checking if regular API works...");
+        try {
+          const testResponse = await apiRequest("/api/tasks");
+          console.log(
+            "✅ TEST: Regular API request works! Tasks:",
+            testResponse?.length || 0,
+          );
+        } catch (testError) {
+          console.error(
+            "❌ TEST: Regular API request failed:",
+            testError.message,
+          );
+        }
+
+        // Now try export
+        console.log("🧪 TEST: Now attempting CSV export...");
+        exportCsvBtn.textContent = "Eksportowanie...";
         const { blob, filename } = await apiDownload(buildExportPath(), {
           method: "GET",
         });
         downloadBlob(blob, filename);
+        console.log("✅ TEST: CSV export successful!");
       } catch (error) {
         console.error("Failed to export tasks:", error);
-        alert("Nie udalo sie wyeksportowac zadan.");
+
+        // Provide better error messages
+        let errorMessage = "Nie udało się wyeksportować zadań.";
+        if (error.message && error.message.includes("Session expired")) {
+          errorMessage = "Sesja wygasła. Zaloguj się ponownie.";
+        } else if (error.message && error.message.includes("No token")) {
+          errorMessage = "Musisz się zalogować aby wyeksportować zadania.";
+        } else if (error.message) {
+          errorMessage = `Błąd: ${error.message}`;
+        }
+
+        alert(errorMessage);
       } finally {
         exportCsvBtn.disabled = false;
-        exportCsvBtn.textContent = "Export CSV";
+        exportCsvBtn.textContent = "Eksport CSV";
       }
     });
   }
@@ -910,6 +976,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         categories.push(savedCategory);
         activeCategoryId = Number(savedCategory.id);
+        await loadStatuses();
         openCategoryMenu = null;
         closeAllModals();
         renderDashboard();
@@ -927,7 +994,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const taskName = taskNameInput.value.trim();
       const taskDescription = taskDescriptionInput.value.trim();
 
-      if (!taskName || !activeCategoryId) {
+      if (!taskName) {
         return;
       }
 
@@ -936,7 +1003,12 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const taskPayload = createTaskPayload();
 
-        if (!taskPayload.title || !taskPayload.categoryId) {
+        if (!taskPayload) {
+          alert("Wybierz status dla zadania");
+          return;
+        }
+
+        if (!taskPayload.title) {
           return;
         }
 
@@ -945,10 +1017,7 @@ document.addEventListener("DOMContentLoaded", () => {
             `${TASKS_API_PATH}/${editingTaskId}`,
             {
               method: "PATCH",
-              body: JSON.stringify({
-                ...taskPayload,
-                status: toBackendStatus(activeStatusId),
-              }),
+              body: JSON.stringify(taskPayload),
             },
           );
 
@@ -957,7 +1026,6 @@ document.addEventListener("DOMContentLoaded", () => {
               ? {
                   ...task,
                   ...updatedTask,
-                  status: normalizeStatus(updatedTask.status),
                 }
               : task,
           );
@@ -970,16 +1038,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const savedTask = await apiRequest(TASKS_API_PATH, {
           method: "POST",
-          body: JSON.stringify({
-            ...taskPayload,
-            status: toBackendStatus(activeStatusId),
-          }),
+          body: JSON.stringify(taskPayload),
         });
 
-        tasks.push({
-          ...savedTask,
-          status: normalizeStatus(savedTask.status),
-        });
+        tasks.push(savedTask);
 
         activePanelMenuStatusId = null;
         closeAllModals();
@@ -1020,103 +1082,106 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  categoryTabs.addEventListener("click", (event) => {
-    const categoryItem = event.target.closest(".category-tab-item");
+  if (categoryTabs) {
+    categoryTabs.addEventListener("click", async (event) => {
+      const categoryItem = event.target.closest(".category-tab-item");
 
-    if (!categoryItem) {
-      return;
-    }
-
-    const categoryId = Number(categoryItem.dataset.categoryId);
-    const action = event.target.dataset.action;
-
-    if (action === "select-category") {
-      activeCategoryId = categoryId;
-      openCategoryMenu = null;
-      renderDashboard();
-      return;
-    }
-
-    if (action === "toggle-category-menu") {
-      event.preventDefault();
-      event.stopPropagation();
-      openCategoryMenu =
-        openCategoryMenu?.id === categoryId
-          ? null
-          : {
-              id: categoryId,
-              ...getFloatingMenuPosition(event.target),
-            };
-      renderCategoryTabs();
-      return;
-    }
-
-    if (action === "rename-category") {
-      const category = categories.find(
-        (item) => Number(item.id) === categoryId,
-      );
-      const newName = prompt("Nowa nazwa kategorii:", category?.name || "");
-
-      if (!newName || !newName.trim()) {
+      if (!categoryItem) {
         return;
       }
 
-      apiRequest(`${CATEGORIES_API_PATH}/${categoryId}`, {
-        method: "PUT",
-        body: JSON.stringify({ name: newName.trim() }),
-      })
-        .then((updatedCategory) => {
-          categories = categories.map((item) =>
-            Number(item.id) === categoryId ? updatedCategory : item,
-          );
-          openCategoryMenu = null;
-          renderDashboard();
-        })
-        .catch((error) => {
-          console.error("Failed to rename category:", error);
-          alert("Nie udalo sie zmienic nazwy kategorii.");
-        });
-      return;
-    }
+      const categoryId = Number(categoryItem.dataset.categoryId);
+      const action = event.target.dataset.action;
 
-    if (action === "delete-category") {
-      const confirmed = confirm("Usunac kategorie razem z jej zadaniami?");
+      if (action === "select-category") {
+        activeCategoryId = categoryId;
+        openCategoryMenu = null;
 
-      if (!confirmed) {
+        await loadStatuses();
+
+        renderDashboard();
         return;
       }
 
-      apiRequest(`${CATEGORIES_API_PATH}/${categoryId}`, {
-        method: "DELETE",
-      })
-        .then(() => {
-          categories = categories.filter(
-            (item) => Number(item.id) !== categoryId,
-          );
-          tasks = tasks.filter(
-            (task) => Number(getTaskCategoryId(task)) !== categoryId,
-          );
+      if (action === "toggle-category-menu") {
+        event.preventDefault();
+        event.stopPropagation();
+        openCategoryMenu =
+          openCategoryMenu?.id === categoryId
+            ? null
+            : {
+                id: categoryId,
+                ...getFloatingMenuPosition(event.target),
+              };
+        renderCategoryTabs();
+        return;
+      }
 
-          if (Number(activeCategoryId) === categoryId) {
-            activeCategoryId = categories[0]?.id || null;
-          }
+      if (action === "rename-category") {
+        const category = categories.find(
+          (item) => Number(item.id) === categoryId,
+        );
+        const newName = prompt("Nowa nazwa kategorii:", category?.name || "");
 
-          openCategoryMenu = null;
-          renderDashboard();
+        if (!newName || !newName.trim()) {
+          return;
+        }
+
+        apiRequest(`${CATEGORIES_API_PATH}/${categoryId}`, {
+          method: "PUT",
+          body: JSON.stringify({ name: newName.trim() }),
         })
-        .catch((error) => {
-          console.error("Failed to delete category:", error);
-          alert("Nie udalo sie usunac kategorii.");
-        });
-    }
-  });
+          .then((updatedCategory) => {
+            categories = categories.map((item) =>
+              Number(item.id) === categoryId ? updatedCategory : item,
+            );
+            openCategoryMenu = null;
+            renderDashboard();
+          })
+          .catch((error) => {
+            console.error("Failed to rename category:", error);
+            alert("Nie udalo sie zmienic nazwy kategorii.");
+          });
+        return;
+      }
 
-  container.addEventListener("click", (event) => {
+      if (action === "delete-category") {
+        const confirmed = confirm("Usunac kategorie razem z jej zadaniami?");
+
+        if (!confirmed) {
+          return;
+        }
+
+        apiRequest(`${CATEGORIES_API_PATH}/${categoryId}`, {
+          method: "DELETE",
+        })
+          .then(() => {
+            categories = categories.filter(
+              (item) => Number(item.id) !== categoryId,
+            );
+            tasks = tasks.filter(
+              (task) => Number(getTaskCategoryId(task)) !== categoryId,
+            );
+
+            if (Number(activeCategoryId) === categoryId) {
+              activeCategoryId = categories[0]?.id || null;
+            }
+
+            openCategoryMenu = null;
+            renderDashboard();
+          })
+          .catch((error) => {
+            console.error("Failed to delete category:", error);
+            alert("Nie udalo sie usunac kategorii.");
+          });
+      }
+    });
+  }
+
+  container.addEventListener("click", async (event) => {
     const action = event.target.dataset.action;
     const panelElement = event.target.closest(".task-panel");
-    const taskElement = event.target.closest(
-      ".task-item, .gantt-task-row"
-    );
+    const taskElement = event.target.closest(".task-item, .gantt-task-row");
 
     if (action === "gantt-zoom-out") {
       ganttZoomIndex = Math.max(0, ganttZoomIndex - 1);
@@ -1125,7 +1190,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (action === "gantt-zoom-in") {
-      ganttZoomIndex = Math.min(GANTT_ZOOM_LEVELS.length - 1, ganttZoomIndex + 1);
+      ganttZoomIndex = Math.min(
+        GANTT_ZOOM_LEVELS.length - 1,
+        ganttZoomIndex + 1,
+      );
       renderDashboard();
       return;
     }
@@ -1143,22 +1211,40 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (action === "add-status") {
-      const newStatusName = prompt("Nazwa nowego statusu:");
-
-      if (!newStatusName || !newStatusName.trim()) {
+      if (!activeCategoryId) {
+        alert("Nie ma wybranej kategorii. Proszę wybrać kategorię.");
         return;
       }
 
-      const trimmedName = newStatusName.trim();
-      statusPanels = [
-        ...statusPanels,
-        { id: createStatusId(trimmedName), name: trimmedName },
-      ];
-      renderDashboard();
+      const name = prompt("Nazwa nowego statusu:");
+
+      if (!name?.trim()) return;
+
+      try {
+        const created = await apiRequest(STATUS_API_PATH, {
+          method: "POST",
+          body: JSON.stringify({
+            categoryId: activeCategoryId,
+            name: name.trim(),
+          }),
+        });
+
+        statusPanels.push({
+          id: String(created.id),
+          backendId: created.id,
+          name: created.name,
+        });
+
+        renderDashboard();
+      } catch (err) {
+        console.error(err);
+        alert("Nie udało się utworzyć statusu.");
+      }
+
       return;
     }
 
-    if (taskElement && !panelElement && handleTaskAction(action, taskElement)) {
+    if (taskElement && handleTaskAction(action, taskElement)) {
       return;
     }
 
@@ -1182,44 +1268,68 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (action === "rename-status") {
-      const panel = statusPanels.find((item) => item.id === panelStatusId);
-      const newName = prompt("Nowa nazwa statusu:", panel?.name || "");
+      const panel = statusPanels.find(
+        (s) => String(s.id) === String(panelStatusId),
+      );
 
-      if (!newName || !newName.trim()) {
-        return;
+      const name = prompt("Nowa nazwa statusu:", panel?.name || "");
+
+      if (!name?.trim()) return;
+
+      try {
+        const updated = await apiRequest(
+          `${STATUS_API_PATH}/${panel.backendId || panel.id}`,
+          {
+            method: "PUT",
+            body: JSON.stringify({
+              name: name.trim(),
+            }),
+          },
+        );
+
+        statusPanels = statusPanels.map((s) =>
+          String(s.id) === String(panelStatusId)
+            ? {
+                ...s,
+                name: updated.name,
+              }
+            : s,
+        );
+
+        renderDashboard();
+      } catch (err) {
+        alert("Nie udało się zmienić statusu.");
       }
 
-      statusPanels = statusPanels.map((item) =>
-        item.id === panelStatusId ? { ...item, name: newName.trim() } : item,
-      );
-      activePanelMenuStatusId = null;
-      renderDashboard();
       return;
     }
 
     if (action === "delete-status") {
-      if (statusPanels.length <= 1) {
-        alert("Musi zostac przynajmniej jeden status.");
-        return;
-      }
+      const confirmed = confirm("Usunąć status?");
 
-      const confirmed = confirm("Usunac status razem z jego zadaniami?");
+      if (!confirmed) return;
 
-      if (!confirmed) {
-        return;
-      }
-
-      tasks = tasks.filter(
-        (task) => normalizeStatus(task.status) !== panelStatusId,
+      const panel = statusPanels.find(
+        (s) => String(s.id) === String(panelStatusId),
       );
-      statusPanels = statusPanels.filter((item) => item.id !== panelStatusId);
 
-      if (activeStatusId === panelStatusId) {
-        activeStatusId = statusPanels[0]?.id || "";
+      try {
+        await apiRequest(`${STATUS_API_PATH}/${panel.backendId || panel.id}`, {
+          method: "DELETE",
+        });
+
+        statusPanels = statusPanels.filter(
+          (s) => String(s.id) !== String(panelStatusId),
+        );
+
+        activePanelMenuStatusId = null;
+        activePanelMenuPosition = null;
+
+        renderDashboard();
+      } catch (err) {
+        alert("Nie udało się usunąć statusu.");
       }
 
-      activePanelMenuStatusId = null;
-      renderDashboard();
       return;
     }
 
@@ -1249,143 +1359,106 @@ document.addEventListener("DOMContentLoaded", () => {
       renderDashboard();
       return;
     }
-
-    if (action === "expand-task") {
-      const task = tasks.find((item) => Number(item.id) === taskId);
-      activeTaskMenuStatusId = null;
-      openTaskDetails(task?.title || "Task", task?.description || "");
-      return;
-    }
-
-    if (action === "edit-task") {
-      const task = tasks.find((item) => Number(item.id) === taskId);
-
-      if (!task) {
-        return;
-      }
-
-      activeTaskMenuStatusId = null;
-      activeTaskMenuPosition = null;
-      openTaskEditModal(task);
-      return;
-    }
-
-    if (action === "delete-task") {
-      const confirmed = confirm("Usunac zadanie?");
-
-      if (!confirmed) {
-        return;
-      }
-
-      apiRequest(`${TASKS_API_PATH}/${taskId}`, {
-        method: "DELETE",
-      })
-        .then(() => {
-          tasks = tasks.filter((item) => Number(item.id) !== taskId);
-          activeTaskMenuStatusId = null;
-          activeTaskMenuPosition = null;
-          renderDashboard();
-        })
-        .catch((error) => {
-          console.error("Failed to delete task:", error);
-          alert("Nie udalo sie usunac zadania.");
-        });
-      return;
-    }
-
-    if (action === "move-task") {
-      if (statusPanels.length <= 1) {
-        alert("Brak innego statusu do przeniesienia.");
-        return;
-      }
-
-      const currentStatus = normalizeStatus(taskStatusId);
-      const availableStatuses = statusPanels.filter(
-        (panel) => panel.id !== currentStatus,
-      );
-      const selectedLabel = prompt(
-        `Wybierz status:\n${availableStatuses
-          .map((panel, index) => `${index + 1}. ${panel.name}`)
-          .join("\n")}`,
-      );
-      const selectedStatus = availableStatuses[Number(selectedLabel) - 1];
-
-      if (!selectedStatus) {
-        return;
-      }
-
-      apiRequest(`${TASKS_API_PATH}/${taskId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          status: toBackendStatus(selectedStatus.id),
-        }),
-      })
-        .then((updatedTask) => {
-          tasks = tasks.map((item) =>
-            Number(item.id) === taskId
-              ? {
-                  ...item,
-                  ...updatedTask,
-                  status: normalizeStatus(updatedTask.status),
-                }
-              : item,
-          );
-
-          activeTaskMenuStatusId = null;
-          activeTaskMenuPosition = null;
-          renderDashboard();
-        })
-        .catch((error) => {
-          console.error("Failed to move task:", error);
-          alert("Nie udalo sie zmienic statusu zadania.");
-        });
-    }
   });
 
   container.addEventListener("dragover", (event) => {
     event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    const panelElement = event.target.closest(".task-panel");
+    if (panelElement) {
+      panelElement.style.backgroundColor = "rgba(100, 150, 200, 0.1)";
+    }
+  });
+
+  container.addEventListener("dragleave", (event) => {
+    const panelElement = event.target.closest(".task-panel");
+    if (panelElement) {
+      panelElement.style.backgroundColor = "";
+    }
   });
 
   container.addEventListener("drop", async (event) => {
     event.preventDefault();
+    console.log("🔴 DROP EVENT FIRED");
 
     const panelElement = event.target.closest(".task-panel");
+    console.log("📌 Panel Element:", panelElement);
+    console.log("📌 draggedTaskId:", draggedTaskId);
 
-    if (!panelElement || draggedTaskId === null) return;
+    if (!panelElement || draggedTaskId === null) {
+      console.log("❌ No panel element or draggedTaskId is null");
+      return;
+    }
 
     const newStatusId = panelElement.dataset.statusId;
+    console.log("📌 newStatusId from dataset:", newStatusId);
 
     const task = tasks.find((t) => Number(t.id) === draggedTaskId);
-    if (!task) return;
+    console.log("📌 Task found:", task);
+    if (!task) {
+      console.log("❌ Task not found");
+      return;
+    }
 
-    const currentStatus = normalizeStatus(task.status);
+    const currentStatus = String(task.statusId || "");
+    console.log(
+      "📌 currentStatus:",
+      currentStatus,
+      "vs newStatusId:",
+      newStatusId,
+    );
 
-    if (currentStatus === newStatusId) return;
+    if (currentStatus === newStatusId) {
+      console.log("⚠️ Same status, skipping");
+      return;
+    }
 
     try {
+      console.log(
+        "🔵 Sending PATCH request with statusId:",
+        Number(newStatusId),
+      );
       const updatedTask = await apiRequest(
         `${TASKS_API_PATH}/${draggedTaskId}/status`,
         {
           method: "PATCH",
           body: JSON.stringify({
-            status: toBackendStatus(newStatusId),
+            statusId: Number(newStatusId),
           }),
         },
       );
 
-      tasks = tasks.map((t) =>
-        Number(t.id) === draggedTaskId
-          ? {
-              ...t,
-              ...updatedTask,
-              status: normalizeStatus(updatedTask.status),
-            }
-          : t,
-      );
+      console.log("✅ Updated task:", updatedTask);
+
+      // Reload tasks from server to ensure UI is in sync
+      try {
+        const loadedTasks = await apiRequest(TASKS_API_PATH, {
+          method: "GET",
+        });
+
+        tasks = Array.isArray(loadedTasks)
+          ? loadedTasks.map((task) => ({
+              ...task,
+              status: String(task.statusId || ""),
+            }))
+          : [];
+        console.log("✅ Tasks reloaded from server:", tasks);
+      } catch (err) {
+        console.warn("⚠️ Failed to reload tasks, using local update:", err);
+        // Fallback: update locally
+        tasks = tasks.map((t) =>
+          Number(t.id) === draggedTaskId
+            ? {
+                ...t,
+                ...updatedTask,
+              }
+            : t,
+        );
+      }
 
       renderDashboard();
     } catch (err) {
-      console.error(err);
+      console.error("❌ Error:", err);
       alert("Nie udało się przenieść zadania.");
     }
   });
@@ -1393,10 +1466,24 @@ document.addEventListener("DOMContentLoaded", () => {
   container.addEventListener("dragstart", (event) => {
     const taskElement = event.target.closest(".task-item");
 
-    if (!taskElement) return;
+    if (!taskElement) {
+      console.log("❌ No task element found");
+      return;
+    }
 
     draggedTaskId = Number(taskElement.dataset.taskId);
+    console.log("🟢 DRAG START - draggedTaskId:", draggedTaskId);
     taskElement.classList.add("dragging");
+  });
+
+  container.addEventListener("dragend", (event) => {
+    const taskElement = event.target.closest(".task-item");
+
+    if (taskElement) {
+      taskElement.classList.remove("dragging");
+    }
+
+    draggedTaskId = null;
   });
 
   document.addEventListener("click", () => {
@@ -1414,7 +1501,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  if (panelNameInput) {
+  if (panelNameInput && saveBtn) {
     panelNameInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         saveBtn.click();
@@ -1422,7 +1509,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (taskNameInput) {
+  if (taskNameInput && taskSaveBtn) {
     taskNameInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         taskSaveBtn.click();
