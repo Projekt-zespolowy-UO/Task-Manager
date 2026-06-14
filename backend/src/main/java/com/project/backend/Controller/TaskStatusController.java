@@ -24,7 +24,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/statuses")
+@RequestMapping("/api/statuses")
 @RequiredArgsConstructor
 public class TaskStatusController {
 
@@ -32,9 +32,9 @@ public class TaskStatusController {
 
     @GetMapping
     public List<TaskStatusResponseDto> getStatuses(
-            @RequestParam Long dashboardId,
+            @RequestParam Long categoryId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return taskStatusService.getStatuses(dashboardId, userDetails);
+        return taskStatusService.getStatusesByCategory(categoryId, userDetails);
     }
 
     @PostMapping

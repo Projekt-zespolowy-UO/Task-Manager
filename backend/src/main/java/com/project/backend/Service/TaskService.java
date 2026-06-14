@@ -1,6 +1,7 @@
 package com.project.backend.Service;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -57,7 +58,22 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
-    public void writeTasksCsv(
+    public byte[] getTasksCsvAsBytes(
+            CustomUserDetails userDetails,
+            Long categoryId,
+            Long statusId,
+            String search) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        try {
+            writeTasksCsv(byteArrayOutputStream, userDetails, categoryId, statusId, search);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to generate CSV", e);
+        }
+        return byteArrayOutputStream.toByteArray();
+    }
+
+    @Transactional(readOnly = true)
+    private void writeTasksCsv(
             OutputStream outputStream,
             CustomUserDetails userDetails,
             Long categoryId,
@@ -116,9 +132,7 @@ public class TaskService {
             throw ApiError.badRequest("Dashboard is required for task status management");
         }
 
-        TaskStatusModel status = dto.getStatusId() != null
-                ? requireOwnedStatusForDashboard(dto.getStatusId(), dashboard.getId(), user.getId())
-                : requireDefaultStatus(dashboard.getId(), user.getId());
+        TaskStatusModel status = requireOwnedStatusForDashboard(dto.getStatusId(), user.getId());
 
         TaskModel task = new TaskModel();
         task.setTitle(normalizeRequiredTitle(dto.getTitle()));
@@ -145,7 +159,7 @@ public class TaskService {
 
         task.setTitle(normalizeRequiredTitle(dto.getTitle()));
         task.setDescription(dto.getDescription());
-        task.setStatus(requireOwnedStatusForDashboard(dto.getStatusId(), dashboard.getId(), user.getId()));
+        task.setStatus(requireOwnedStatusForDashboard(dto.getStatusId(), user.getId()));
         task.setPriority(dto.getPriority());
         task.setDeadline(dto.getDeadline());
         task.setCategory(requireOwnedCategory(dto.getCategoryId(), user.getId()));
@@ -169,7 +183,7 @@ public class TaskService {
             if (dashboard == null) {
                 throw ApiError.badRequest("Task does not belong to a dashboard");
             }
-            task.setStatus(requireOwnedStatusForDashboard(dto.getStatusId(), dashboard.getId(), user.getId()));
+            task.setStatus(requireOwnedStatusForDashboard(dto.getStatusId(), user.getId()));
         }
         if (dto.getPriority() != null) {
             task.setPriority(dto.getPriority());
@@ -194,7 +208,7 @@ public class TaskService {
             throw ApiError.badRequest("Task does not belong to a dashboard");
         }
 
-        task.setStatus(requireOwnedStatusForDashboard(dto.getStatusId(), dashboard.getId(), user.getId()));
+        task.setStatus(requireOwnedStatusForDashboard(dto.getStatusId(), user.getId()));
 
         return toResponse(taskRepository.save(task));
     }
@@ -239,24 +253,17 @@ public class TaskService {
                 .orElseThrow(() -> ApiError.notFound("Dashboard not found"));
     }
 
-    private TaskStatusModel requireOwnedStatusForDashboard(Long statusId, Long dashboardId, Long userId) {
-        TaskStatusModel status = taskStatusRepository.findByIdAndDashboard_Id(statusId, dashboardId)
+    private TaskStatusModel requireOwnedStatusForDashboard(Long statusId, Long userId) {
+        TaskStatusModel status = taskStatusRepository.findById(statusId)
                 .orElseThrow(() -> ApiError.notFound("Status not found"));
 
-        if (status.getDashboard() == null
-                || status.getDashboard().getUser() == null
-                || !status.getDashboard().getUser().getId().equals(userId)) {
+        if (status.getCategory() == null
+                || status.getCategory().getUser() == null
+                || !status.getCategory().getUser().getId().equals(userId)) {
             throw ApiError.notFound("Status not found");
         }
 
         return status;
-    }
-
-    private TaskStatusModel requireDefaultStatus(Long dashboardId, Long userId) {
-        Dashboard dashboard = requireOwnedDashboard(dashboardId, userId);
-
-        return taskStatusRepository.findByDashboard_IdAndSystemKey(dashboard.getId(), "TODO")
-                .orElseThrow(() -> ApiError.notFound("Default TODO status not found"));
     }
 
     private String normalizeRequiredTitle(String title) {
@@ -284,17 +291,19 @@ public class TaskService {
 
     private List<String> toCsvRow(TaskModel task) {
         CategoryModel category = task.getCategory();
+        TaskStatusModel status = task.getStatus();
+        Dashboard dashboard = task.getDashboard();
 
         return List.of(
                 csvValue(task.getId()),
                 csvValue(task.getTitle()),
                 csvValue(task.getDescription()),
-                csvValue(task.getStatus() != null ? task.getStatus().getName() : null),
+                csvValue(status != null ? status.getName() : null),
                 csvValue(task.getPriority()),
                 csvValue(task.getDeadline()),
                 csvValue(category != null ? category.getId() : null),
                 csvValue(category != null ? category.getName() : null),
-                csvValue(task.getDashboard() != null ? task.getDashboard().getId() : null));
+                csvValue(dashboard != null ? dashboard.getId() : null));
     }
 
     private String csvValue(Object value) {

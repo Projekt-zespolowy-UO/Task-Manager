@@ -15,5 +15,5 @@ public class TaskStatusCreateDto {
     private String name;
 
     @NotNull
-    private Long dashboardId;
+    private Long categoryId;
 }

@@ -34,7 +34,7 @@ public class TaskStatusModel {
     private String systemKey;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "dashboard_id", nullable = false)
+    @JoinColumn(name = "category_id", nullable = false)
     @JsonIgnore
-    private Dashboard dashboard;
+    private CategoryModel category;
 }

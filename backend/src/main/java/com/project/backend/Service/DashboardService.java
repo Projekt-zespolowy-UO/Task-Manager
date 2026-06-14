@@ -7,10 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.project.backend.Exception.ApiError;
 import com.project.backend.Model.Dashboard;
-import com.project.backend.Model.TaskStatusModel;
 import com.project.backend.Model.UserModel;
 import com.project.backend.Repository.DashboardRepository;
-import com.project.backend.Repository.TaskStatusRepository;
 import com.project.backend.Security.CustomUserDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -20,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 public class DashboardService {
 
     private final DashboardRepository dashboardRepository;
-    private final TaskStatusRepository taskStatusRepository;
 
     @Transactional(readOnly = true)
     public List<Dashboard> getDashboards(CustomUserDetails userDetails) {
@@ -37,10 +34,7 @@ public class DashboardService {
         dashboard.setUser(user);
         dashboard.setName(dashboardName);
 
-        Dashboard savedDashboard = dashboardRepository.save(dashboard);
-        createDefaultStatuses(savedDashboard);
-
-        return savedDashboard;
+        return dashboardRepository.save(dashboard);
     }
 
     @Transactional(readOnly = true)
@@ -57,28 +51,6 @@ public class DashboardService {
                 .orElseThrow(() -> ApiError.notFound("Dashboard not found"));
 
         dashboardRepository.delete(dashboard);
-    }
-
-    private void createDefaultStatuses(Dashboard dashboard) {
-        TaskStatusModel todo = new TaskStatusModel();
-        todo.setName("To do");
-        todo.setSystemKey("TODO");
-        todo.setPosition(0);
-        todo.setDashboard(dashboard);
-
-        TaskStatusModel inProgress = new TaskStatusModel();
-        inProgress.setName("In progress");
-        inProgress.setSystemKey("IN_PROGRESS");
-        inProgress.setPosition(1);
-        inProgress.setDashboard(dashboard);
-
-        TaskStatusModel done = new TaskStatusModel();
-        done.setName("Done");
-        done.setSystemKey("DONE");
-        done.setPosition(2);
-        done.setDashboard(dashboard);
-
-        taskStatusRepository.saveAll(List.of(todo, inProgress, done));
     }
 
     private UserModel requireAuthenticatedUser(CustomUserDetails userDetails) {

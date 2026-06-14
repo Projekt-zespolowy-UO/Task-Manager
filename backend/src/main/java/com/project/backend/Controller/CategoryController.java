@@ -26,7 +26,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/categories")
+@RequestMapping("/api/categories")
 @RequiredArgsConstructor
 @Tag(name = "Categories", description = "CRUD operations for user categories")
 @SecurityRequirement(name = "bearerAuth")

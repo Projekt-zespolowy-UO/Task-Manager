@@ -30,13 +30,14 @@ public interface TaskRepository extends JpaRepository<TaskModel, Long> {
             FROM TaskModel t
             LEFT JOIN FETCH t.category c
             LEFT JOIN FETCH t.status s
+            LEFT JOIN FETCH t.dashboard d
             WHERE t.user.id = :userId
               AND (:categoryId IS NULL OR c.id = :categoryId)
               AND (:statusId IS NULL OR s.id = :statusId)
               AND (
                     :search IS NULL
                     OR LOWER(t.title) LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(COALESCE(t.description, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR (t.description IS NOT NULL AND LOWER(t.description) LIKE LOWER(CONCAT('%', :search, '%')))
                   )
             ORDER BY t.id ASC
             """)

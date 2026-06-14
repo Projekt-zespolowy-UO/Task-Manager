@@ -9,10 +9,10 @@ import com.project.backend.Dto.TaskStatusCreateDto;
 import com.project.backend.Dto.TaskStatusRenameDto;
 import com.project.backend.Dto.TaskStatusResponseDto;
 import com.project.backend.Exception.ApiError;
-import com.project.backend.Model.Dashboard;
+import com.project.backend.Model.CategoryModel;
 import com.project.backend.Model.TaskStatusModel;
 import com.project.backend.Model.UserModel;
-import com.project.backend.Repository.DashboardRepository;
+import com.project.backend.Repository.CategoryRepository;
 import com.project.backend.Repository.TaskStatusRepository;
 import com.project.backend.Security.CustomUserDetails;
 
@@ -23,14 +23,14 @@ import lombok.RequiredArgsConstructor;
 public class TaskStatusService {
 
     private final TaskStatusRepository taskStatusRepository;
-    private final DashboardRepository dashboardRepository;
+    private final CategoryRepository categoryRepository;
 
     @Transactional(readOnly = true)
-    public List<TaskStatusResponseDto> getStatuses(Long dashboardId, CustomUserDetails userDetails) {
+    public List<TaskStatusResponseDto> getStatusesByCategory(Long categoryId, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        requireOwnedDashboard(dashboardId, user.getId());
+        requireOwnedCategory(categoryId, user.getId());
 
-        return taskStatusRepository.findByDashboard_IdOrderByPositionAsc(dashboardId)
+        return taskStatusRepository.findByCategory_IdOrderByPositionAsc(categoryId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -39,15 +39,15 @@ public class TaskStatusService {
     @Transactional
     public TaskStatusResponseDto createStatus(TaskStatusCreateDto dto, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        Dashboard dashboard = requireOwnedDashboard(dto.getDashboardId(), user.getId());
+        CategoryModel category = requireOwnedCategory(dto.getCategoryId(), user.getId());
 
-        int nextPosition = taskStatusRepository.findByDashboard_IdOrderByPositionAsc(dashboard.getId()).size();
+        int nextPosition = taskStatusRepository.findByCategory_IdOrderByPositionAsc(category.getId()).size();
 
         TaskStatusModel status = new TaskStatusModel();
         status.setName(dto.getName().trim());
         status.setPosition(nextPosition);
         status.setSystemKey(null);
-        status.setDashboard(dashboard);
+        status.setCategory(category);
 
         return toResponse(taskStatusRepository.save(status));
     }
@@ -79,7 +79,7 @@ public class TaskStatusService {
                 status.getId(),
                 status.getName(),
                 status.getPosition(),
-                status.getDashboard().getId(),
+                status.getCategory().getId(),
                 status.getSystemKey());
     }
 
@@ -91,18 +91,18 @@ public class TaskStatusService {
         return userDetails.user();
     }
 
-    private Dashboard requireOwnedDashboard(Long dashboardId, Long userId) {
-        return dashboardRepository.findByIdAndUser_Id(dashboardId, userId)
-                .orElseThrow(() -> ApiError.notFound("Dashboard not found"));
+    private CategoryModel requireOwnedCategory(Long categoryId, Long userId) {
+        return categoryRepository.findByIdAndUser_Id(categoryId, userId)
+                .orElseThrow(() -> ApiError.notFound("Category not found"));
     }
 
     private TaskStatusModel requireOwnedStatus(Long statusId, Long userId) {
         TaskStatusModel status = taskStatusRepository.findById(statusId)
                 .orElseThrow(() -> ApiError.notFound("Status not found"));
 
-        if (status.getDashboard() == null
-                || status.getDashboard().getUser() == null
-                || !status.getDashboard().getUser().getId().equals(userId)) {
+        if (status.getCategory() == null
+                || status.getCategory().getUser() == null
+                || !status.getCategory().getUser().getId().equals(userId)) {
             throw ApiError.notFound("Status not found");
         }
 

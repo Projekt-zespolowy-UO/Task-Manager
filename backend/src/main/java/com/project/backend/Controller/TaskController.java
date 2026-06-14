@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import com.project.backend.Dto.TaskCategoryUpdateDto;
 import com.project.backend.Dto.TaskCreateDto;
@@ -36,7 +35,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/tasks")
+@RequestMapping("/api/tasks")
 @RequiredArgsConstructor
 @Tag(name = "Tasks", description = "CRUD operations for user tasks")
 @SecurityRequirement(name = "bearerAuth")
@@ -53,22 +52,29 @@ public class TaskController {
 
     @GetMapping("/export.csv")
     @Operation(summary = "Export tasks available to the authenticated user as CSV")
-    public ResponseEntity<StreamingResponseBody> exportTasksCsv(
+    public ResponseEntity<byte[]> exportTasksCsv(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String search) {
 
+        // Debug: check if userDetails is null
+        if (userDetails == null) {
+            System.out.println("🔴 DEBUG: userDetails is NULL in exportTasksCsv!");
+            throw new RuntimeException("User not authenticated");
+        }
+
+        System.out.println("🟢 DEBUG: exportTasksCsv called for user: " + userDetails.getUsername());
+
         String filename = "tasks-" + LocalDate.now() + ".csv";
-        StreamingResponseBody responseBody = outputStream ->
-                taskService.writeTasksCsv(outputStream, userDetails, categoryId, statusId, search);
+        byte[] csvData = taskService.getTasksCsvAsBytes(userDetails, categoryId, statusId, search);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(filename).build().toString())
-                .body(responseBody);
+                .body(csvData);
     }
 
     @PostMapping

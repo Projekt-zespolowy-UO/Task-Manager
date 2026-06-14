@@ -1,6 +1,7 @@
 package com.project.backend.Controller;
 
 import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,7 +16,7 @@ import com.project.backend.Dto.TaskCategoryDto;
 import com.project.backend.Service.TaskCategoryService;
 
 @RestController
-@RequestMapping("/api/categories")
+@RequestMapping("/api/task-categories")
 public class TaskCategoryController {
 
     @Autowired

@@ -9,9 +9,9 @@ import com.project.backend.Model.TaskStatusModel;
 
 public interface TaskStatusRepository extends JpaRepository<TaskStatusModel, Long> {
 
-    List<TaskStatusModel> findByDashboard_IdOrderByPositionAsc(Long dashboardId);
+    List<TaskStatusModel> findByCategory_IdOrderByPositionAsc(Long categoryId);
 
-    Optional<TaskStatusModel> findByIdAndDashboard_Id(Long id, Long dashboardId);
+    Optional<TaskStatusModel> findByIdAndCategory_Id(Long id, Long categoryId);
 
-    Optional<TaskStatusModel> findByDashboard_IdAndSystemKey(Long dashboardId, String systemKey);
+    Optional<TaskStatusModel> findByCategory_IdAndSystemKey(Long categoryId, String systemKey);
 }

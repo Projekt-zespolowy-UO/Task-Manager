@@ -9,6 +9,6 @@ public class TaskStatusResponseDto {
     private Long id;
     private String name;
     private Integer position;
-    private Long dashboardId;
+    private Long categoryId;
     private String systemKey;
 }
