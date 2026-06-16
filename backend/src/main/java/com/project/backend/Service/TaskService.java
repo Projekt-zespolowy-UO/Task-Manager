@@ -46,12 +46,14 @@ public class TaskService {
     private final CategoryRepository categoryRepository;
     private final DashboardRepository dashboardRepository;
     private final TaskStatusRepository taskStatusRepository;
+    private final DashboardAuthorizationService dashboardAuthorizationService;
 
     @Transactional(readOnly = true)
     public List<TaskResponseDto> getTasks(CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
 
-        return taskRepository.findByUser_IdOrderByIdAsc(user.getId())
+        // Get all tasks from dashboards user is a member of
+        return taskRepository.findAccessibleTasks(user.getId())
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -102,7 +104,7 @@ public class TaskService {
 
             do {
                 Pageable pageable = PageRequest.of(pageNumber, CSV_EXPORT_PAGE_SIZE);
-                taskPage = taskRepository.findOwnedTasksForCsvExport(
+                taskPage = taskRepository.findAccessibleTasksForCsvExport(
                         user.getId(),
                         categoryId,
                         statusId,
@@ -239,8 +241,16 @@ public class TaskService {
     }
 
     private TaskModel requireOwnedTask(Long taskId, Long userId) {
-        return taskRepository.findByIdAndUser_Id(taskId, userId)
+        TaskModel task = taskRepository.findById(taskId)
                 .orElseThrow(() -> ApiError.notFound("Task not found"));
+        
+        // Verify user is a member of the task's dashboard
+        if (task.getDashboard() == null) {
+            throw ApiError.badRequest("Task does not belong to a dashboard");
+        }
+        
+        dashboardAuthorizationService.validateDashboardAccess(userId, task.getDashboard().getId());
+        return task;
     }
 
     private CategoryModel requireOwnedCategory(Long categoryId, Long userId) {
@@ -249,8 +259,10 @@ public class TaskService {
     }
 
     private Dashboard requireOwnedDashboard(Long dashboardId, Long userId) {
-        return dashboardRepository.findByIdAndUser_Id(dashboardId, userId)
-                .orElseThrow(() -> ApiError.notFound("Dashboard not found"));
+        Dashboard dashboard = dashboardAuthorizationService.getDashboardOrThrow(dashboardId);
+        // Verify user is a member of the dashboard (can be MEMBER or OWNER)
+        dashboardAuthorizationService.validateDashboardAccess(userId, dashboardId);
+        return dashboard;
     }
 
     private TaskStatusModel requireOwnedStatusForDashboard(Long statusId, Long userId) {
