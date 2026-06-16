@@ -5,9 +5,12 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.project.backend.Enum.DashboardRole;
 import com.project.backend.Exception.ApiError;
 import com.project.backend.Model.Dashboard;
+import com.project.backend.Model.DashboardMember;
 import com.project.backend.Model.UserModel;
+import com.project.backend.Repository.DashboardMemberRepository;
 import com.project.backend.Repository.DashboardRepository;
 import com.project.backend.Security.CustomUserDetails;
 
@@ -18,11 +21,17 @@ import lombok.RequiredArgsConstructor;
 public class DashboardService {
 
     private final DashboardRepository dashboardRepository;
+    private final DashboardMemberRepository dashboardMemberRepository;
+    private final DashboardAuthorizationService authorizationService;
 
     @Transactional(readOnly = true)
     public List<Dashboard> getDashboards(CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        return dashboardRepository.findByUser_IdOrderByIdAsc(user.getId());
+        // Get dashboards where user is a member
+        return dashboardMemberRepository.findByUser_IdOrderByCreatedAtAsc(user.getId())
+                .stream()
+                .map(DashboardMember::getDashboard)
+                .toList();
     }
 
     @Transactional
@@ -34,22 +43,29 @@ public class DashboardService {
         dashboard.setUser(user);
         dashboard.setName(dashboardName);
 
-        return dashboardRepository.save(dashboard);
+        Dashboard savedDashboard = dashboardRepository.save(dashboard);
+
+        // Add creator as owner member
+        DashboardMember ownerMember = new DashboardMember(savedDashboard, user, DashboardRole.OWNER);
+        dashboardMemberRepository.save(ownerMember);
+
+        return savedDashboard;
     }
 
     @Transactional(readOnly = true)
     public Dashboard getDashboardById(Long id, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        return dashboardRepository.findByIdAndUser_Id(id, user.getId())
-                .orElseThrow(() -> ApiError.notFound("Dashboard not found"));
+        // Verify user is a member
+        authorizationService.validateDashboardAccess(user.getId(), id);
+        return authorizationService.getDashboardOrThrow(id);
     }
 
     @Transactional
     public void deleteDashboard(Long id, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        Dashboard dashboard = dashboardRepository.findByIdAndUser_Id(id, user.getId())
-                .orElseThrow(() -> ApiError.notFound("Dashboard not found"));
-
+        // Verify user is the owner
+        authorizationService.validateDashboardOwnerAccess(user.getId(), id);
+        Dashboard dashboard = authorizationService.getDashboardOrThrow(id);
         dashboardRepository.delete(dashboard);
     }
 
