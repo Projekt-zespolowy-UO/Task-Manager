@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.project.backend.Enum.DashboardRole;
+import com.project.backend.Dto.DashboardResponseDto;
 import com.project.backend.Exception.ApiError;
 import com.project.backend.Model.Dashboard;
 import com.project.backend.Model.DashboardMember;
@@ -25,17 +26,17 @@ public class DashboardService {
     private final DashboardAuthorizationService authorizationService;
 
     @Transactional(readOnly = true)
-    public List<Dashboard> getDashboards(CustomUserDetails userDetails) {
+    public List<DashboardResponseDto> getDashboards(CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        // Get dashboards where user is a member
         return dashboardMemberRepository.findByUser_IdOrderByCreatedAtAsc(user.getId())
                 .stream()
                 .map(DashboardMember::getDashboard)
+                .map(this::toResponse)
                 .toList();
     }
 
     @Transactional
-    public Dashboard createDashboard(CustomUserDetails userDetails, String name) {
+    public DashboardResponseDto createDashboard(CustomUserDetails userDetails, String name) {
         UserModel user = requireAuthenticatedUser(userDetails);
         String dashboardName = normalizeName(name);
 
@@ -49,15 +50,14 @@ public class DashboardService {
         DashboardMember ownerMember = new DashboardMember(savedDashboard, user, DashboardRole.OWNER);
         dashboardMemberRepository.save(ownerMember);
 
-        return savedDashboard;
+        return toResponse(savedDashboard);
     }
 
     @Transactional(readOnly = true)
-    public Dashboard getDashboardById(Long id, CustomUserDetails userDetails) {
+    public DashboardResponseDto getDashboardById(Long id, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        // Verify user is a member
         authorizationService.validateDashboardAccess(user.getId(), id);
-        return authorizationService.getDashboardOrThrow(id);
+        return toResponse(authorizationService.getDashboardOrThrow(id));
     }
 
     @Transactional
@@ -83,5 +83,9 @@ public class DashboardService {
         }
 
         return name.trim();
+    }
+
+    private DashboardResponseDto toResponse(Dashboard dashboard) {
+        return new DashboardResponseDto(dashboard.getId(), dashboard.getName());
     }
 }

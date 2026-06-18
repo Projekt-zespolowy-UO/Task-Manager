@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.project.backend.Dto.DashboardCreateDto;
 import com.project.backend.Dto.DashboardInvitationResponseDto;
 import com.project.backend.Dto.DashboardMemberResponseDto;
+import com.project.backend.Dto.DashboardResponseDto;
 import com.project.backend.Dto.InviteUserDto;
 import com.project.backend.Model.Dashboard;
 import com.project.backend.Model.DashboardInvitation;
@@ -34,24 +35,25 @@ public class DashboardController {
     private final DashboardMembershipService dashboardMembershipService;
 
     @GetMapping
-    public ResponseEntity<List<Dashboard>> getDashboards(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<Dashboard> dashboards = dashboardService.getDashboards(userDetails);
+    public ResponseEntity<List<DashboardResponseDto>> getDashboards(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<DashboardResponseDto> dashboards = dashboardService.getDashboards(userDetails);
         return ResponseEntity.ok(dashboards);
     }
 
     @PostMapping
-    public ResponseEntity<Dashboard> createDashboard(
+    public ResponseEntity<DashboardResponseDto> createDashboard(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody DashboardCreateDto dto) {
-        Dashboard dashboard = dashboardService.createDashboard(userDetails, dto.getName());
+        DashboardResponseDto dashboard = dashboardService.createDashboard(userDetails, dto.getName());
         return ResponseEntity.ok(dashboard);
     }
 
     @GetMapping("/{dashboardId}")
-    public ResponseEntity<Dashboard> getDashboard(
+    public ResponseEntity<DashboardResponseDto> getDashboard(
             @PathVariable Long dashboardId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Dashboard dashboard = dashboardService.getDashboardById(dashboardId, userDetails);
+        DashboardResponseDto dashboard = dashboardService.getDashboardById(dashboardId, userDetails);
         return ResponseEntity.ok(dashboard);
     }
 
