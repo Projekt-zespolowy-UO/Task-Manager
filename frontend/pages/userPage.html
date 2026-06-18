@@ -69,6 +69,22 @@
       </div>
     </div>
 
+    <section class="workspace-bar">
+      <div class="workspace-heading">
+        <span class="workspace-label">Workspace</span>
+        <select id="dashboard-select" aria-label="Wybierz workspace"></select>
+      </div>
+      <button
+        class="workspace-add-btn"
+        id="add-dashboard-btn"
+        type="button"
+        aria-label="Dodaj workspace"
+        title="Dodaj workspace"
+      >
+        +
+      </button>
+    </section>
+
     <section class="category-bar">
       <div class="category-tabs" id="category-tabs"></div>
       <div class="category-actions">
@@ -89,6 +105,23 @@
     </section>
 
     <div class="task-container"></div>
+
+    <div id="dashboard-modal" class="modal">
+      <div class="modal-content">
+        <h3>Nowy workspace</h3>
+        <input
+          type="text"
+          id="dashboard-name-input"
+          placeholder="Nazwa workspace..."
+          maxlength="255"
+        />
+
+        <div class="modal-actions">
+          <button id="dashboard-cancel-btn" type="button">Anuluj</button>
+          <button id="dashboard-save-btn" type="button">Utworz</button>
+        </div>
+      </div>
+    </div>
 
     <div id="panel-modal" class="modal">
       <div class="modal-content">

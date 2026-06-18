@@ -215,6 +215,57 @@ header {
   border-radius: 8px;
 }
 
+.workspace-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 98%;
+  margin: 0 auto;
+  padding-top: 125px;
+}
+
+.workspace-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workspace-label {
+  color: rgb(138, 139, 142);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+#dashboard-select {
+  min-width: 210px;
+  max-width: 360px;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 9px 34px 9px 12px;
+}
+
+.workspace-add-btn {
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.workspace-add-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
 .category-bar {
   display: flex;
   align-items: center;
@@ -222,7 +273,7 @@ header {
   gap: 16px;
   width: 98%;
   margin: 0 auto;
-  padding-top: 125px;
+  padding-top: 12px;
 }
 
 .category-tabs {
@@ -766,9 +817,17 @@ header {
   }
 
   .category-bar {
-    padding-top: 100px;
     align-items: flex-start;
     flex-wrap: wrap;
+  }
+
+  .workspace-bar {
+    padding-top: 100px;
+  }
+
+  #dashboard-select {
+    min-width: 0;
+    max-width: calc(100vw - 150px);
   }
 
   .category-actions {
