@@ -698,16 +698,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderDashboard() {
     renderDashboardOptions();
-    console.log("🎨 renderDashboard() called");
-    console.log("📊 categories:", categories);
-    console.log("📊 statusPanels:", statusPanels);
-    console.log("📊 activeDashboardId:", activeDashboardId);
-
     renderCategoryTabs();
 
-    // Pokazuj statusy zawsze, niezależnie od kategorii
+    if (!activeDashboardId) {
+      container.className = "task-container";
+      container.innerHTML = `
+        <div class="empty-state">
+          Utworz workspace, aby zaczac planowanie.
+        </div>
+      `;
+      return;
+    }
+
+    if (!categories.length) {
+      container.className = "task-container";
+      container.innerHTML = `
+        <div class="empty-state">
+          Dodaj pierwsza kategorie w tym workspace.
+        </div>
+      `;
+      return;
+    }
+
     if (!statusPanels.length) {
-      console.warn("⚠️ No status panels! Showing only add-status button");
+      container.className = "task-container";
       container.innerHTML = renderAddStatusButton();
       return;
     }
@@ -718,7 +732,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     container.className = "task-container";
-    console.log("✅ Rendering", statusPanels.length, "status panels");
     container.innerHTML =
       statusPanels.map((panel) => renderPanelElement(panel)).join("") +
       renderAddStatusButton();
@@ -1293,7 +1306,7 @@ document.addEventListener("DOMContentLoaded", () => {
         apiRequest(`${CATEGORIES_API_PATH}/${categoryId}`, {
           method: "DELETE",
         })
-          .then(() => {
+          .then(async () => {
             categories = categories.filter(
               (item) => Number(item.id) !== categoryId,
             );
@@ -1305,6 +1318,7 @@ document.addEventListener("DOMContentLoaded", () => {
               activeCategoryId = categories[0]?.id || null;
             }
 
+            await loadStatuses();
             openCategoryMenu = null;
             renderDashboard();
           })

@@ -66,7 +66,9 @@ public class CategoryService {
         UserModel user = requireAuthenticatedUser(userDetails);
         CategoryModel category = requireAccessibleCategory(categoryId, user.getId());
 
-        taskRepository.clearCategoryForDashboardTasks(category.getId(), category.getDashboard().getId());
+        taskRepository.deleteByCategoryIdAndDashboardId(
+                category.getId(),
+                category.getDashboard().getId());
         categoryRepository.delete(category);
     }
 

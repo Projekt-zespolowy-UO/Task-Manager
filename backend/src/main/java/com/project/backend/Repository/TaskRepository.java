@@ -27,12 +27,11 @@ public interface TaskRepository extends JpaRepository<TaskModel, Long> {
 
     @Modifying
     @Query("""
-            UPDATE TaskModel t
-            SET t.category = NULL
+            DELETE FROM TaskModel t
             WHERE t.category.id = :categoryId
               AND t.dashboard.id = :dashboardId
             """)
-    int clearCategoryForDashboardTasks(
+    int deleteByCategoryIdAndDashboardId(
             @Param("categoryId") Long categoryId,
             @Param("dashboardId") Long dashboardId);
 
