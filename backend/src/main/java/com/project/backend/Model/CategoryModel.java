@@ -24,4 +24,8 @@ public class CategoryModel {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private UserModel user;
+
+    @ManyToOne
+    @JoinColumn(name = "dashboard_id", nullable = false)
+    private Dashboard dashboard;
 }

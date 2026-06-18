@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.project.backend.Model.CategoryModel;
 
 public interface CategoryRepository extends JpaRepository<CategoryModel, Long> {
-    List<CategoryModel> findByUser_IdOrderByIdAsc(Long userId);
+    List<CategoryModel> findByDashboard_IdOrderByIdAsc(Long dashboardId);
 
-    Optional<CategoryModel> findByIdAndUser_Id(Long id, Long userId);
+    Optional<CategoryModel> findByIdAndDashboard_Id(Long id, Long dashboardId);
 }

@@ -46,8 +46,9 @@ public class TaskController {
     @GetMapping
     @Operation(summary = "List all tasks for the authenticated user")
     public List<TaskResponseDto> getTasks(
+            @RequestParam Long dashboardId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return taskService.getTasks(userDetails);
+        return taskService.getTasks(dashboardId, userDetails);
     }
 
     @GetMapping("/export.csv")

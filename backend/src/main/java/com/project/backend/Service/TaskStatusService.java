@@ -24,11 +24,12 @@ public class TaskStatusService {
 
     private final TaskStatusRepository taskStatusRepository;
     private final CategoryRepository categoryRepository;
+    private final DashboardAuthorizationService dashboardAuthorizationService;
 
     @Transactional(readOnly = true)
     public List<TaskStatusResponseDto> getStatusesByCategory(Long categoryId, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        requireOwnedCategory(categoryId, user.getId());
+        requireAccessibleCategory(categoryId, user.getId());
 
         return taskStatusRepository.findByCategory_IdOrderByPositionAsc(categoryId)
                 .stream()
@@ -39,7 +40,7 @@ public class TaskStatusService {
     @Transactional
     public TaskStatusResponseDto createStatus(TaskStatusCreateDto dto, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        CategoryModel category = requireOwnedCategory(dto.getCategoryId(), user.getId());
+        CategoryModel category = requireAccessibleCategory(dto.getCategoryId(), user.getId());
 
         int nextPosition = taskStatusRepository.findByCategory_IdOrderByPositionAsc(category.getId()).size();
 
@@ -55,7 +56,7 @@ public class TaskStatusService {
     @Transactional
     public TaskStatusResponseDto renameStatus(Long statusId, TaskStatusRenameDto dto, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        TaskStatusModel status = requireOwnedStatus(statusId, user.getId());
+        TaskStatusModel status = requireAccessibleStatus(statusId, user.getId());
 
         status.setName(dto.getName().trim());
 
@@ -65,7 +66,7 @@ public class TaskStatusService {
     @Transactional
     public void deleteStatus(Long statusId, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        TaskStatusModel status = requireOwnedStatus(statusId, user.getId());
+        TaskStatusModel status = requireAccessibleStatus(statusId, user.getId());
 
         if (status.getSystemKey() != null) {
             throw ApiError.badRequest("Default status cannot be deleted");
@@ -91,21 +92,24 @@ public class TaskStatusService {
         return userDetails.user();
     }
 
-    private CategoryModel requireOwnedCategory(Long categoryId, Long userId) {
-        return categoryRepository.findByIdAndUser_Id(categoryId, userId)
+    private CategoryModel requireAccessibleCategory(Long categoryId, Long userId) {
+        CategoryModel category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> ApiError.notFound("Category not found"));
+        dashboardAuthorizationService.validateDashboardAccess(userId, category.getDashboard().getId());
+        return category;
     }
 
-    private TaskStatusModel requireOwnedStatus(Long statusId, Long userId) {
+    private TaskStatusModel requireAccessibleStatus(Long statusId, Long userId) {
         TaskStatusModel status = taskStatusRepository.findById(statusId)
                 .orElseThrow(() -> ApiError.notFound("Status not found"));
 
-        if (status.getCategory() == null
-                || status.getCategory().getUser() == null
-                || !status.getCategory().getUser().getId().equals(userId)) {
+        if (status.getCategory() == null || status.getCategory().getDashboard() == null) {
             throw ApiError.notFound("Status not found");
         }
 
+        dashboardAuthorizationService.validateDashboardAccess(
+                userId,
+                status.getCategory().getDashboard().getId());
         return status;
     }
 }

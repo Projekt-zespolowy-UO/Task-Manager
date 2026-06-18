@@ -25,6 +25,17 @@ public interface TaskRepository extends JpaRepository<TaskModel, Long> {
     @Query("DELETE FROM TaskModel t WHERE t.category.id = :categoryId AND t.user.id = :userId")
     int deleteByCategoryIdAndUserId(@Param("categoryId") Long categoryId, @Param("userId") Long userId);
 
+    @Modifying
+    @Query("""
+            UPDATE TaskModel t
+            SET t.category = NULL
+            WHERE t.category.id = :categoryId
+              AND t.dashboard.id = :dashboardId
+            """)
+    int clearCategoryForDashboardTasks(
+            @Param("categoryId") Long categoryId,
+            @Param("dashboardId") Long dashboardId);
+
     @Query("""
             SELECT t
             FROM TaskModel t

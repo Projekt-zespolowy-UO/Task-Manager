@@ -49,11 +49,11 @@ public class TaskService {
     private final DashboardAuthorizationService dashboardAuthorizationService;
 
     @Transactional(readOnly = true)
-    public List<TaskResponseDto> getTasks(CustomUserDetails userDetails) {
+    public List<TaskResponseDto> getTasks(Long dashboardId, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
+        dashboardAuthorizationService.validateDashboardAccess(user.getId(), dashboardId);
 
-        // Get all tasks from dashboards user is a member of
-        return taskRepository.findAccessibleTasks(user.getId())
+        return taskRepository.findByDashboard_IdOrderByIdAsc(dashboardId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -124,17 +124,22 @@ public class TaskService {
     @Transactional
     public TaskResponseDto createTask(TaskCreateDto dto, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        CategoryModel category = requireOwnedCategory(dto.getCategoryId(), user.getId());
-
         Dashboard dashboard = dto.getDashboardId() != null
-                ? requireOwnedDashboard(dto.getDashboardId(), user.getId())
+                ? requireAccessibleDashboard(dto.getDashboardId(), user.getId())
                 : null;
 
         if (dashboard == null) {
             throw ApiError.badRequest("Dashboard is required for task status management");
         }
 
-        TaskStatusModel status = requireOwnedStatusForDashboard(dto.getStatusId(), user.getId());
+        CategoryModel category = requireCategoryForDashboard(
+                dto.getCategoryId(),
+                dashboard.getId(),
+                user.getId());
+        TaskStatusModel status = requireStatusForDashboard(
+                dto.getStatusId(),
+                dashboard.getId(),
+                user.getId());
 
         TaskModel task = new TaskModel();
         task.setTitle(normalizeRequiredTitle(dto.getTitle()));
@@ -161,10 +166,10 @@ public class TaskService {
 
         task.setTitle(normalizeRequiredTitle(dto.getTitle()));
         task.setDescription(dto.getDescription());
-        task.setStatus(requireOwnedStatusForDashboard(dto.getStatusId(), user.getId()));
+        task.setStatus(requireStatusForDashboard(dto.getStatusId(), dashboard.getId(), user.getId()));
         task.setPriority(dto.getPriority());
         task.setDeadline(dto.getDeadline());
-        task.setCategory(requireOwnedCategory(dto.getCategoryId(), user.getId()));
+        task.setCategory(requireCategoryForDashboard(dto.getCategoryId(), dashboard.getId(), user.getId()));
 
         return toResponse(taskRepository.save(task));
     }
@@ -185,7 +190,7 @@ public class TaskService {
             if (dashboard == null) {
                 throw ApiError.badRequest("Task does not belong to a dashboard");
             }
-            task.setStatus(requireOwnedStatusForDashboard(dto.getStatusId(), user.getId()));
+            task.setStatus(requireStatusForDashboard(dto.getStatusId(), dashboard.getId(), user.getId()));
         }
         if (dto.getPriority() != null) {
             task.setPriority(dto.getPriority());
@@ -194,7 +199,11 @@ public class TaskService {
             task.setDeadline(dto.getDeadline());
         }
         if (dto.getCategoryId() != null) {
-            task.setCategory(requireOwnedCategory(dto.getCategoryId(), user.getId()));
+            Dashboard dashboard = requireTaskDashboard(task);
+            task.setCategory(requireCategoryForDashboard(
+                    dto.getCategoryId(),
+                    dashboard.getId(),
+                    user.getId()));
         }
 
         return toResponse(taskRepository.save(task));
@@ -210,7 +219,7 @@ public class TaskService {
             throw ApiError.badRequest("Task does not belong to a dashboard");
         }
 
-        task.setStatus(requireOwnedStatusForDashboard(dto.getStatusId(), user.getId()));
+        task.setStatus(requireStatusForDashboard(dto.getStatusId(), dashboard.getId(), user.getId()));
 
         return toResponse(taskRepository.save(task));
     }
@@ -220,7 +229,11 @@ public class TaskService {
         UserModel user = requireAuthenticatedUser(userDetails);
         TaskModel task = requireOwnedTask(taskId, user.getId());
 
-        task.setCategory(requireOwnedCategory(dto.getCategoryId(), user.getId()));
+        Dashboard dashboard = requireTaskDashboard(task);
+        task.setCategory(requireCategoryForDashboard(
+                dto.getCategoryId(),
+                dashboard.getId(),
+                user.getId()));
 
         return toResponse(taskRepository.save(task));
     }
@@ -253,29 +266,37 @@ public class TaskService {
         return task;
     }
 
-    private CategoryModel requireOwnedCategory(Long categoryId, Long userId) {
-        return categoryRepository.findByIdAndUser_Id(categoryId, userId)
-                .orElseThrow(() -> ApiError.notFound("Category not found"));
-    }
-
-    private Dashboard requireOwnedDashboard(Long dashboardId, Long userId) {
+    private Dashboard requireAccessibleDashboard(Long dashboardId, Long userId) {
         Dashboard dashboard = dashboardAuthorizationService.getDashboardOrThrow(dashboardId);
-        // Verify user is a member of the dashboard (can be MEMBER or OWNER)
         dashboardAuthorizationService.validateDashboardAccess(userId, dashboardId);
         return dashboard;
     }
 
-    private TaskStatusModel requireOwnedStatusForDashboard(Long statusId, Long userId) {
+    private CategoryModel requireCategoryForDashboard(Long categoryId, Long dashboardId, Long userId) {
+        dashboardAuthorizationService.validateDashboardAccess(userId, dashboardId);
+        return categoryRepository.findByIdAndDashboard_Id(categoryId, dashboardId)
+                .orElseThrow(() -> ApiError.notFound("Category not found"));
+    }
+
+    private TaskStatusModel requireStatusForDashboard(Long statusId, Long dashboardId, Long userId) {
+        dashboardAuthorizationService.validateDashboardAccess(userId, dashboardId);
         TaskStatusModel status = taskStatusRepository.findById(statusId)
                 .orElseThrow(() -> ApiError.notFound("Status not found"));
 
         if (status.getCategory() == null
-                || status.getCategory().getUser() == null
-                || !status.getCategory().getUser().getId().equals(userId)) {
+                || status.getCategory().getDashboard() == null
+                || !status.getCategory().getDashboard().getId().equals(dashboardId)) {
             throw ApiError.notFound("Status not found");
         }
 
         return status;
+    }
+
+    private Dashboard requireTaskDashboard(TaskModel task) {
+        if (task.getDashboard() == null) {
+            throw ApiError.badRequest("Task does not belong to a dashboard");
+        }
+        return task.getDashboard();
     }
 
     private String normalizeRequiredTitle(String title) {
