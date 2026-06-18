@@ -62,12 +62,13 @@ public class TaskService {
     @Transactional(readOnly = true)
     public byte[] getTasksCsvAsBytes(
             CustomUserDetails userDetails,
+            Long dashboardId,
             Long categoryId,
             Long statusId,
             String search) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try {
-            writeTasksCsv(byteArrayOutputStream, userDetails, categoryId, statusId, search);
+            writeTasksCsv(byteArrayOutputStream, userDetails, dashboardId, categoryId, statusId, search);
         } catch (IOException e) {
             throw new RuntimeException("Failed to generate CSV", e);
         }
@@ -78,10 +79,14 @@ public class TaskService {
     private void writeTasksCsv(
             OutputStream outputStream,
             CustomUserDetails userDetails,
+            Long dashboardId,
             Long categoryId,
             Long statusId,
             String search) throws IOException {
         UserModel user = requireAuthenticatedUser(userDetails);
+        if (dashboardId != null) {
+            dashboardAuthorizationService.validateDashboardAccess(user.getId(), dashboardId);
+        }
         String normalizedSearch = normalizeSearch(search);
 
         outputStream.write(UTF8_BOM);
@@ -106,6 +111,7 @@ public class TaskService {
                 Pageable pageable = PageRequest.of(pageNumber, CSV_EXPORT_PAGE_SIZE);
                 taskPage = taskRepository.findAccessibleTasksForCsvExport(
                         user.getId(),
+                        dashboardId,
                         categoryId,
                         statusId,
                         normalizedSearch,

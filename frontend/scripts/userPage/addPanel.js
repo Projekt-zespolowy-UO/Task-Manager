@@ -14,6 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const addCategoryBtn = document.getElementById("add-category-btn");
   const exportCsvBtn = document.getElementById("export-csv-btn");
+  const addDashboardBtn = document.getElementById("add-dashboard-btn");
+  const dashboardSelect = document.getElementById("dashboard-select");
+  const dashboardModal = document.getElementById("dashboard-modal");
   const panelModal = document.getElementById("panel-modal");
   const taskModal = document.getElementById("task-modal");
   const taskDetailsModal = document.getElementById("task-details-modal");
@@ -21,6 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const saveBtn = document.getElementById("save-btn");
   const cancelBtn = document.getElementById("cancel-btn");
+  const dashboardSaveBtn = document.getElementById("dashboard-save-btn");
+  const dashboardCancelBtn = document.getElementById("dashboard-cancel-btn");
   const taskSaveBtn = document.getElementById("task-save-btn");
   const taskCancelBtn = document.getElementById("task-cancel-btn");
   const taskDetailsCloseBtn = document.getElementById("task-details-close-btn");
@@ -32,6 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const viewSelect = document.getElementById("view-select");
 
   const panelNameInput = document.getElementById("panel-name-input");
+  const dashboardNameInput = document.getElementById("dashboard-name-input");
   const taskNameInput = document.getElementById("task-name-input");
   const taskDescriptionInput = document.getElementById(
     "task-description-input",
@@ -63,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let dashboards = [];
   let categories = [];
   let tasks = [];
+  const ACTIVE_DASHBOARD_KEY = "planix_active_dashboard_id";
 
   function escapeHtml(value) {
     return String(value || "")
@@ -226,6 +233,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams();
     const searchValue = searchInput?.value?.trim();
 
+    if (activeDashboardId) {
+      params.set("dashboardId", activeDashboardId);
+    }
+
     if (activeCategoryId) {
       params.set("categoryId", activeCategoryId);
     }
@@ -257,6 +268,18 @@ document.addEventListener("DOMContentLoaded", () => {
     overlay.classList.add("active");
     panelNameInput.value = "";
     panelNameInput.focus();
+  }
+
+  function openDashboardModal() {
+    dashboardModal.style.display = "flex";
+    overlay.classList.add("active");
+    dashboardNameInput.value = "";
+    dashboardNameInput.focus();
+  }
+
+  function closeDashboardModal() {
+    dashboardModal.style.display = "none";
+    dashboardNameInput.value = "";
   }
 
   function closeCategoryModal() {
@@ -321,10 +344,28 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function closeAllModals() {
+    closeDashboardModal();
     closeCategoryModal();
     closeTaskModal();
     closeTaskDetails();
     overlay.classList.remove("active");
+  }
+
+  function renderDashboardOptions() {
+    dashboardSelect.innerHTML = dashboards
+      .map(
+        (dashboard) => `
+          <option
+            value="${dashboard.id}"
+            ${Number(dashboard.id) === Number(activeDashboardId) ? "selected" : ""}
+          >
+            ${escapeHtml(dashboard.name || "Workspace")}
+          </option>
+        `,
+      )
+      .join("");
+
+    dashboardSelect.disabled = dashboards.length === 0;
   }
 
   function renderCategoryTabs() {
@@ -656,6 +697,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderDashboard() {
+    renderDashboardOptions();
     console.log("🎨 renderDashboard() called");
     console.log("📊 categories:", categories);
     console.log("📊 statusPanels:", statusPanels);
@@ -670,6 +712,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    if (activeView === "gantt") {
+      renderGanttView();
+      return;
+    }
+
     container.className = "task-container";
     console.log("✅ Rendering", statusPanels.length, "status panels");
     container.innerHTML =
@@ -681,7 +728,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadDashboardData() {
     try {
-      let loadedDashboards = await apiRequest(DASHBOARDS_API_PATH, {
+      const loadedDashboards = await apiRequest(DASHBOARDS_API_PATH, {
         method: "GET",
       });
 
@@ -702,7 +749,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      activeDashboardId = dashboards[0]?.id || null;
+      const storedDashboardId = Number(
+        localStorage.getItem(ACTIVE_DASHBOARD_KEY),
+      );
+      const storedDashboard = dashboards.find(
+        (dashboard) => Number(dashboard.id) === storedDashboardId,
+      );
+      activeDashboardId = storedDashboard?.id || dashboards[0]?.id || null;
+      if (activeDashboardId) {
+        localStorage.setItem(ACTIVE_DASHBOARD_KEY, activeDashboardId);
+      }
       console.log("✅ Dashboards loaded:", dashboards);
       console.log("✅ Active Dashboard ID:", activeDashboardId);
     } catch (error) {
@@ -713,9 +769,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const loadedCategories = await apiRequest(CATEGORIES_API_PATH, {
-        method: "GET",
-      });
+      const loadedCategories = await apiRequest(
+        `${CATEGORIES_API_PATH}?dashboardId=${activeDashboardId}`,
+        {
+          method: "GET",
+        },
+      );
 
       categories = Array.isArray(loadedCategories) ? loadedCategories : [];
       activeCategoryId = categories[0]?.id || null;
@@ -734,9 +793,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const loadedTasks = await apiRequest(TASKS_API_PATH, {
-        method: "GET",
-      });
+      const loadedTasks = await apiRequest(
+        `${TASKS_API_PATH}?dashboardId=${activeDashboardId}`,
+        {
+          method: "GET",
+        },
+      );
 
       tasks = Array.isArray(loadedTasks)
         ? loadedTasks.map((task) => ({
@@ -746,6 +808,47 @@ document.addEventListener("DOMContentLoaded", () => {
         : [];
     } catch (error) {
       console.warn("Could not load tasks. Endpoint may not exist yet:", error);
+    }
+
+    renderDashboard();
+  }
+
+  async function loadWorkspaceData() {
+    categories = [];
+    tasks = [];
+    statusPanels = [];
+    activeCategoryId = null;
+    activeStatusId = "";
+
+    if (!activeDashboardId) {
+      renderDashboard();
+      return;
+    }
+
+    try {
+      const [loadedCategories, loadedTasks] = await Promise.all([
+        apiRequest(`${CATEGORIES_API_PATH}?dashboardId=${activeDashboardId}`, {
+          method: "GET",
+        }),
+        apiRequest(`${TASKS_API_PATH}?dashboardId=${activeDashboardId}`, {
+          method: "GET",
+        }),
+      ]);
+
+      categories = Array.isArray(loadedCategories) ? loadedCategories : [];
+      activeCategoryId = categories[0]?.id || null;
+      tasks = Array.isArray(loadedTasks)
+        ? loadedTasks.map((task) => ({
+            ...task,
+            status: String(task.statusId || ""),
+          }))
+        : [];
+
+      if (activeCategoryId) {
+        await loadStatuses();
+      }
+    } catch (error) {
+      console.error("Could not load workspace data:", error);
     }
 
     renderDashboard();
@@ -891,39 +994,23 @@ document.addEventListener("DOMContentLoaded", () => {
     addCategoryBtn.addEventListener("click", openCategoryModal);
   }
 
+  if (addDashboardBtn) {
+    addDashboardBtn.addEventListener("click", openDashboardModal);
+  }
+
   if (exportCsvBtn) {
     exportCsvBtn.addEventListener("click", async () => {
       exportCsvBtn.disabled = true;
-      exportCsvBtn.textContent = "Testowanie...";
+      exportCsvBtn.textContent = "Eksportowanie...";
 
       try {
-        // First, test if regular API request works
-        console.log("🧪 TEST: Checking if regular API works...");
-        try {
-          const testResponse = await apiRequest("/api/tasks");
-          console.log(
-            "✅ TEST: Regular API request works! Tasks:",
-            testResponse?.length || 0,
-          );
-        } catch (testError) {
-          console.error(
-            "❌ TEST: Regular API request failed:",
-            testError.message,
-          );
-        }
-
-        // Now try export
-        console.log("🧪 TEST: Now attempting CSV export...");
-        exportCsvBtn.textContent = "Eksportowanie...";
         const { blob, filename } = await apiDownload(buildExportPath(), {
           method: "GET",
         });
         downloadBlob(blob, filename);
-        console.log("✅ TEST: CSV export successful!");
       } catch (error) {
         console.error("Failed to export tasks:", error);
 
-        // Provide better error messages
         let errorMessage = "Nie udało się wyeksportować zadań.";
         if (error.message && error.message.includes("Session expired")) {
           errorMessage = "Sesja wygasła. Zaloguj się ponownie.";
@@ -943,6 +1030,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (cancelBtn) {
     cancelBtn.addEventListener("click", closeAllModals);
+  }
+
+  if (dashboardCancelBtn) {
+    dashboardCancelBtn.addEventListener("click", closeAllModals);
   }
 
   if (taskCancelBtn) {
@@ -971,7 +1062,10 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const savedCategory = await apiRequest(CATEGORIES_API_PATH, {
           method: "POST",
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({
+            name,
+            dashboardId: activeDashboardId,
+          }),
         });
 
         categories.push(savedCategory);
@@ -985,6 +1079,37 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Nie udalo sie zapisac kategorii w bazie.");
       } finally {
         saveBtn.disabled = false;
+      }
+    });
+  }
+
+  if (dashboardSaveBtn) {
+    dashboardSaveBtn.addEventListener("click", async () => {
+      const name = dashboardNameInput.value.trim();
+
+      if (!name) {
+        dashboardNameInput.focus();
+        return;
+      }
+
+      dashboardSaveBtn.disabled = true;
+
+      try {
+        const dashboard = await apiRequest(DASHBOARDS_API_PATH, {
+          method: "POST",
+          body: JSON.stringify({ name }),
+        });
+
+        dashboards.push(dashboard);
+        activeDashboardId = dashboard.id;
+        localStorage.setItem(ACTIVE_DASHBOARD_KEY, activeDashboardId);
+        closeAllModals();
+        await loadWorkspaceData();
+      } catch (error) {
+        console.error("Failed to create dashboard:", error);
+        alert("Nie udalo sie utworzyc workspace.");
+      } finally {
+        dashboardSaveBtn.disabled = false;
       }
     });
   }
@@ -1067,6 +1192,19 @@ document.addEventListener("DOMContentLoaded", () => {
       activePanelMenuPosition = null;
       activeTaskMenuPosition = null;
       renderDashboard();
+    });
+  }
+
+  if (dashboardSelect) {
+    dashboardSelect.addEventListener("change", async () => {
+      activeDashboardId = Number(dashboardSelect.value) || null;
+
+      if (activeDashboardId) {
+        localStorage.setItem(ACTIVE_DASHBOARD_KEY, activeDashboardId);
+      }
+
+      closeAllModals();
+      await loadWorkspaceData();
     });
   }
 
@@ -1432,9 +1570,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Reload tasks from server to ensure UI is in sync
       try {
-        const loadedTasks = await apiRequest(TASKS_API_PATH, {
+      const loadedTasks = await apiRequest(
+        `${TASKS_API_PATH}?dashboardId=${activeDashboardId}`,
+        {
           method: "GET",
-        });
+        },
+      );
 
         tasks = Array.isArray(loadedTasks)
           ? loadedTasks.map((task) => ({
@@ -1505,6 +1646,14 @@ document.addEventListener("DOMContentLoaded", () => {
     panelNameInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         saveBtn.click();
+      }
+    });
+  }
+
+  if (dashboardNameInput && dashboardSaveBtn) {
+    dashboardNameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        dashboardSaveBtn.click();
       }
     });
   }

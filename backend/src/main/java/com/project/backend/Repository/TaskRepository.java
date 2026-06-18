@@ -112,6 +112,7 @@ public interface TaskRepository extends JpaRepository<TaskModel, Long> {
                 FROM DashboardMember dm
                 WHERE dm.user.id = :userId
             )
+            AND (:dashboardId IS NULL OR d.id = :dashboardId)
             AND (:categoryId IS NULL OR c.id = :categoryId)
             AND (:statusId IS NULL OR s.id = :statusId)
             AND (
@@ -123,6 +124,7 @@ public interface TaskRepository extends JpaRepository<TaskModel, Long> {
             """)
     Slice<TaskModel> findAccessibleTasksForCsvExport(
             @Param("userId") Long userId,
+            @Param("dashboardId") Long dashboardId,
             @Param("categoryId") Long categoryId,
             @Param("statusId") Long statusId,
             @Param("search") String search,

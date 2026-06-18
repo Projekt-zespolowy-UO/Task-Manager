@@ -55,6 +55,7 @@ public class TaskController {
     @Operation(summary = "Export tasks available to the authenticated user as CSV")
     public ResponseEntity<byte[]> exportTasksCsv(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) Long dashboardId,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String search) {
@@ -68,7 +69,12 @@ public class TaskController {
         System.out.println("🟢 DEBUG: exportTasksCsv called for user: " + userDetails.getUsername());
 
         String filename = "tasks-" + LocalDate.now() + ".csv";
-        byte[] csvData = taskService.getTasksCsvAsBytes(userDetails, categoryId, statusId, search);
+        byte[] csvData = taskService.getTasksCsvAsBytes(
+                userDetails,
+                dashboardId,
+                categoryId,
+                statusId,
+                search);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
