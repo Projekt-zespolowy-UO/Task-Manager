@@ -884,6 +884,294 @@ header {
   color: white;
 }
 
+/* Microsoft Project inspired split table and timeline. */
+.gantt-view .gantt-wrapper {
+  border-color: #aeb4b9;
+  background: #fff;
+  color: #252525;
+}
+
+.gantt-view .gantt-toolbar {
+  min-height: 58px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #b9bec2;
+  background: #f4f5f6;
+}
+
+.gantt-toolbar-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gantt-view .gantt-toolbar-title {
+  color: #1f1f1f;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.gantt-view .gantt-summary {
+  color: #60666b;
+  font-size: 12px;
+}
+
+.gantt-view .gantt-controls {
+  padding-left: 14px;
+  border-left: 1px solid #c8cccf;
+}
+
+.gantt-view .gantt-control-label {
+  min-width: auto;
+  color: #555b60;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.gantt-view .gantt-controls > span:not(.gantt-control-label) {
+  color: #252525;
+  font-size: 12px;
+}
+
+.gantt-view .gantt-controls button {
+  padding: 6px 10px;
+  border-color: #b8bdc1;
+  border-radius: 2px;
+  background: #fff;
+  color: #242424;
+}
+
+.gantt-view .gantt-controls button:hover {
+  border-color: #7f898f;
+  background: #e8eaec;
+}
+
+.gantt-view .gantt-legend {
+  min-height: 30px;
+  border-bottom-color: #c3c7ca;
+  background: #e9ebed;
+  color: #4f5559;
+}
+
+.gantt-view .gantt-scroll {
+  background: #fff;
+}
+
+.gantt-view .gantt-header,
+.gantt-view .gantt-row,
+.gantt-view .gantt-calendar-header,
+.gantt-view .gantt-section-label {
+  grid-template-columns: 650px var(--gantt-timeline-width);
+  min-width: calc(650px + var(--gantt-timeline-width));
+}
+
+.gantt-view .gantt-calendar-header {
+  min-height: 58px;
+  background: #f1f2f3;
+  color: #31363a;
+  text-transform: none;
+}
+
+.gantt-view .gantt-sticky-cell {
+  width: 650px;
+  box-sizing: border-box;
+  border-right: 3px solid #8e959a !important;
+  background: #f7f7f7;
+}
+
+.gantt-view .gantt-row .gantt-sticky-cell {
+  background: #fff;
+}
+
+.gantt-view .gantt-row:nth-child(odd) .gantt-sticky-cell,
+.gantt-view .gantt-row:nth-child(odd) .gantt-timeline {
+  background-color: #fafafa;
+}
+
+.gantt-view .gantt-calendar-header > div,
+.gantt-view .gantt-row > div,
+.gantt-view .gantt-section-label > span {
+  padding: 0;
+  border-bottom: 1px solid #d3d6d8;
+}
+
+.gantt-task-grid {
+  display: grid;
+  grid-template-columns: 42px minmax(190px, 1fr) 72px 92px 92px 90px 72px;
+  align-items: stretch;
+  min-height: 42px;
+}
+
+.gantt-task-grid > span,
+.gantt-task-grid > button {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid #d3d6d8;
+  background: transparent;
+  color: #292d30;
+  font: inherit;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt-task-grid-header {
+  min-height: 58px;
+  background: #e7e9eb !important;
+}
+
+.gantt-task-grid-header > span {
+  justify-content: center;
+  color: #34393d;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.gantt-id-cell {
+  justify-content: center;
+  color: #686e73 !important;
+}
+
+.gantt-name-cell {
+  cursor: pointer;
+  font-weight: 500 !important;
+  text-align: left;
+}
+
+.gantt-name-cell:hover {
+  background: #e5f0e9 !important;
+  color: #185c37 !important;
+}
+
+.gantt-status-cell {
+  color: #50565a !important;
+}
+
+.gantt-priority-cell {
+  justify-content: center;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+
+.gantt-priority-cell.priority-high {
+  color: #a4262c !important;
+}
+
+.gantt-priority-cell.priority-medium {
+  color: #1f5fae !important;
+}
+
+.gantt-priority-cell.priority-low {
+  color: #237a4b !important;
+}
+
+.gantt-view .gantt-calendar-scale {
+  background-color: #f5f5f5;
+  background-image: linear-gradient(
+    to right,
+    rgba(80, 87, 92, 0.16) 1px,
+    transparent 1px
+  );
+}
+
+.gantt-view .gantt-month-row,
+.gantt-view .gantt-day-row {
+  height: 29px;
+}
+
+.gantt-view .gantt-month-row {
+  border-bottom-color: #c9cdd0;
+}
+
+.gantt-view .gantt-month-row span {
+  color: #33383c;
+  border-right-color: #adb3b7;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.gantt-view .gantt-day-row span {
+  justify-content: center;
+  padding: 0 4px;
+  color: #5b6165;
+  border-right-color: #d2d5d7;
+  font-size: 10px;
+}
+
+.gantt-view .gantt-day-row span.is-weekend {
+  background: #e9eaeb;
+}
+
+.gantt-view .gantt-timeline {
+  min-height: 42px;
+  padding: 0 !important;
+  background-color: #fff;
+  background-image: linear-gradient(
+    to right,
+    rgba(80, 87, 92, 0.14) 1px,
+    transparent 1px
+  );
+}
+
+.gantt-view .gantt-bar {
+  top: 8px;
+  height: 25px;
+  border-radius: 1px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+}
+
+.gantt-view .gantt-bar.priority-high {
+  background: #d7676d;
+}
+
+.gantt-view .gantt-bar.priority-medium {
+  background: #5b9bd5;
+}
+
+.gantt-view .gantt-bar.priority-low {
+  background: #70ad8b;
+}
+
+.gantt-view .gantt-bar.is-overdue {
+  box-shadow: inset 0 0 0 2px #c43c43;
+}
+
+.gantt-view .gantt-today-line {
+  width: 1px;
+  background: #107c41;
+  z-index: 2;
+}
+
+.gantt-view .gantt-section-label {
+  background: #e2e5e7;
+  color: #42484c;
+}
+
+.gantt-view .gantt-section-label .gantt-sticky-cell {
+  width: 650px;
+  padding: 7px 10px;
+  background: #e2e5e7;
+}
+
+.gantt-view .gantt-unscheduled-track {
+  padding-left: 12px;
+  background: #f5f5f5;
+}
+
+.gantt-view .gantt-unscheduled-track button {
+  border-color: #aab0b4;
+  border-radius: 2px;
+  color: #3f4549;
+}
+
+.gantt-view .gantt-unscheduled-track button:hover {
+  border-color: #107c41;
+  color: #107c41;
+}
+
 .task-panel {
   display: flex;
   flex-direction: column;
@@ -1113,8 +1401,17 @@ header {
   .gantt-row,
   .gantt-calendar-header,
   .gantt-section-label {
-    grid-template-columns: 220px var(--gantt-timeline-width) 120px;
-    min-width: calc(340px + var(--gantt-timeline-width));
+    grid-template-columns: 580px var(--gantt-timeline-width);
+    min-width: calc(580px + var(--gantt-timeline-width));
+  }
+
+  .gantt-view .gantt-sticky-cell,
+  .gantt-view .gantt-section-label .gantt-sticky-cell {
+    width: 580px;
+  }
+
+  .gantt-task-grid {
+    grid-template-columns: 36px minmax(160px, 1fr) 64px 82px 82px 76px 62px;
   }
 }
 
