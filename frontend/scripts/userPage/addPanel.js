@@ -17,6 +17,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const addDashboardBtn = document.getElementById("add-dashboard-btn");
   const dashboardSelect = document.getElementById("dashboard-select");
   const dashboardModal = document.getElementById("dashboard-modal");
+  const transferOwnerModal = document.getElementById(
+  "transfer-ownership-modal",
+);
+
+
+const transferOwnerBtn = document.getElementById(
+  "transfer-owner-btn",
+);
+
+const transferOwnerSelect =
+  document.getElementById("ownership-member-select");
+
+const transferOwnerSaveBtn =
+  document.getElementById("ownership-save-btn");
+
+const transferOwnerCancelBtn =
+  document.getElementById("ownership-cancel-btn");
   const panelModal = document.getElementById("panel-modal");
   const taskModal = document.getElementById("task-modal");
   const taskDetailsModal = document.getElementById("task-details-modal");
@@ -1172,6 +1189,13 @@ document.addEventListener("DOMContentLoaded", () => {
   if (addDashboardBtn) {
     addDashboardBtn.addEventListener("click", openDashboardModal);
   }
+  if (transferOwnerBtn) {
+  transferOwnerBtn.addEventListener(
+    "click",
+    openTransferOwnershipModal,
+  );
+
+  }
 
   if (exportCsvBtn) {
     exportCsvBtn.addEventListener("click", async () => {
@@ -1983,6 +2007,84 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+async function openTransferOwnershipModal() {
+  if (!activeDashboardId) {
+    return;
+  }
 
+  try {
+    const members = await apiRequest(
+      `/api/dashboards/${activeDashboardId}/members`,
+      {
+        method: "GET",
+      },
+    );
+if (members.filter((m) => m.role !== "OWNER").length === 0) {
+  alert("No members available for ownership transfer.");
+  return;
+}
+    transferOwnerSelect.innerHTML = members
+  .filter((m) => m.role !== "OWNER")
+  .map(
+    (m) =>
+      `<option value="${m.userId}">
+        ${m.username}
+      </option>`,
+  )
+  .join("");
+
+    transferOwnerModal.style.display = "flex";
+    overlay.classList.add("active");
+  } catch (err) {
+    console.error(err);
+    alert("Cannot load dashboard members.");
+  }
+}
+if (transferOwnerSaveBtn) {
+  transferOwnerSaveBtn.addEventListener(
+    "click",
+    async () => {
+      const userId = Number(transferOwnerSelect.value);
+
+      if (!userId) {
+        alert("Select a member.");
+        return;
+      }
+
+      try {
+        await apiRequest(
+          `/api/dashboards/${activeDashboardId}/transfer-ownership`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              userId,
+            }),
+          },
+        );
+
+        alert("Ownership transferred successfully.");
+
+        transferOwnerModal.style.display = "none";
+        overlay.classList.remove("active");
+
+        await loadDashboardData();
+      } catch (err) {
+        console.error(err);
+        alert("Failed to transfer ownership.");
+      }
+    },
+  );
+}
+
+if (transferOwnerCancelBtn) {
+  transferOwnerCancelBtn.addEventListener(
+    "click",
+    () => {
+      transferOwnerModal.style.display = "none";
+      overlay.classList.remove("active");
+    },
+  );
+}
   loadDashboardData();
+  
 });
