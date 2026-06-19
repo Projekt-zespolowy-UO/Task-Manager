@@ -2,7 +2,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const DASHBOARDS_API_PATH = "/api/dashboards";
   const CATEGORIES_API_PATH = "/api/categories";
   const TASKS_API_PATH = "/api/tasks";
-  const TASKS_EXPORT_API_PATH = "/api/tasks/export.csv";
   const STATUS_API_PATH = "/api/statuses";
   let draggedTaskId = null;
 
@@ -297,26 +296,62 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function buildExportPath() {
-    const params = new URLSearchParams();
-    const searchValue = searchInput?.value?.trim();
+  function escapeCsvValue(value) {
+    return `"${String(value ?? "").replaceAll('"', '""')}"`;
+  }
 
-    if (activeDashboardId) {
-      params.set("dashboardId", activeDashboardId);
-    }
+  function createTasksCsvBlob() {
+    const dashboard = dashboards.find(
+      (item) => Number(item.id) === Number(activeDashboardId),
+    );
+    const headers = [
+      "ID",
+      "Tytul",
+      "Opis",
+      "Status",
+      "Priorytet",
+      "Data rozpoczecia",
+      "Termin zakonczenia",
+      "Kategoria",
+      "Workspace",
+    ];
+    const rows = getFilteredTasks().map((task) => {
+      const category = categories.find(
+        (item) => Number(item.id) === Number(getTaskCategoryId(task)),
+      );
 
-    if (activeCategoryId) {
-      params.set("categoryId", activeCategoryId);
-    }
+      return [
+        task.id,
+        task.title || task.name,
+        task.description,
+        task.statusName || getStatusName(task.statusId),
+        task.priority,
+        task.startDate,
+        task.deadline,
+        category?.name,
+        dashboard?.name,
+      ];
+    });
+    const csv = [headers, ...rows]
+      .map((row) => row.map(escapeCsvValue).join(","))
+      .join("\r\n");
 
-    if (searchValue) {
-      params.set("search", searchValue);
-    }
+    return new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csv], {
+      type: "text/csv;charset=UTF-8",
+    });
+  }
 
-    const queryString = params.toString();
-    return queryString
-      ? `${TASKS_EXPORT_API_PATH}?${queryString}`
-      : TASKS_EXPORT_API_PATH;
+  function getCsvFilename() {
+    const dashboard = dashboards.find(
+      (item) => Number(item.id) === Number(activeDashboardId),
+    );
+    const safeName = String(dashboard?.name || "workspace")
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase();
+
+    return `tasks-${safeName || "workspace"}-${toDateInputValue(new Date())}.csv`;
   }
 
   function downloadBlob(blob, filename) {
@@ -862,6 +897,10 @@ document.addEventListener("DOMContentLoaded", () => {
     renderDashboardOptions();
     renderCategoryTabs();
 
+    if (exportCsvBtn) {
+      exportCsvBtn.disabled = !activeDashboardId;
+    }
+
     if (!activeDashboardId) {
       container.className = "task-container";
       container.innerHTML = `
@@ -1174,28 +1213,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (exportCsvBtn) {
-    exportCsvBtn.addEventListener("click", async () => {
+    exportCsvBtn.addEventListener("click", () => {
+      if (!activeDashboardId) {
+        alert("Wybierz workspace przed eksportem zadan.");
+        return;
+      }
+
       exportCsvBtn.disabled = true;
       exportCsvBtn.textContent = "Eksportowanie...";
 
       try {
-        const { blob, filename } = await apiDownload(buildExportPath(), {
-          method: "GET",
-        });
-        downloadBlob(blob, filename);
+        downloadBlob(createTasksCsvBlob(), getCsvFilename());
       } catch (error) {
         console.error("Failed to export tasks:", error);
-
-        let errorMessage = "Nie udało się wyeksportować zadań.";
-        if (error.message && error.message.includes("Session expired")) {
-          errorMessage = "Sesja wygasła. Zaloguj się ponownie.";
-        } else if (error.message && error.message.includes("No token")) {
-          errorMessage = "Musisz się zalogować aby wyeksportować zadania.";
-        } else if (error.message) {
-          errorMessage = `Błąd: ${error.message}`;
-        }
-
-        alert(errorMessage);
+        alert("Nie udalo sie wyeksportowac zadan.");
       } finally {
         exportCsvBtn.disabled = false;
         exportCsvBtn.textContent = "Eksport CSV";
