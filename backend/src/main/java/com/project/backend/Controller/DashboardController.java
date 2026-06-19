@@ -11,7 +11,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.PutMapping;
+import com.project.backend.Dto.DashboardRenameDto;
 import com.project.backend.Dto.DashboardCreateDto;
 import com.project.backend.Dto.DashboardInvitationResponseDto;
 import com.project.backend.Dto.DashboardMemberResponseDto;
@@ -55,7 +56,20 @@ public class DashboardController {
         DashboardResponseDto dashboard = dashboardService.getDashboardById(dashboardId, userDetails);
         return ResponseEntity.ok(dashboard);
     }
+@PutMapping("/{dashboardId}")
+public ResponseEntity<DashboardResponseDto> renameDashboard(
+        @PathVariable Long dashboardId,
+        @Valid @RequestBody DashboardRenameDto dto,
+        @AuthenticationPrincipal CustomUserDetails userDetails) {
 
+    DashboardResponseDto dashboard = dashboardService.renameDashboard(
+            dashboardId,
+            dto.getName(),
+            userDetails
+    );
+
+    return ResponseEntity.ok(dashboard);
+}
     @DeleteMapping("/{dashboardId}")
     public ResponseEntity<Void> deleteDashboard(
             @PathVariable Long dashboardId,

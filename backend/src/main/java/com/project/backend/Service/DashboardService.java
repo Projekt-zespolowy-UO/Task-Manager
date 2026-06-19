@@ -36,22 +36,35 @@ public class DashboardService {
     }
 
     @Transactional
-    public DashboardResponseDto createDashboard(CustomUserDetails userDetails, String name) {
-        UserModel user = requireAuthenticatedUser(userDetails);
-        String dashboardName = normalizeName(name);
+public DashboardResponseDto createDashboard(CustomUserDetails userDetails, String name) {
+    UserModel user = requireAuthenticatedUser(userDetails);
+    String dashboardName = normalizeName(name);
 
-        Dashboard dashboard = new Dashboard();
-        dashboard.setUser(user);
-        dashboard.setName(dashboardName);
-
-        Dashboard savedDashboard = dashboardRepository.save(dashboard);
-
-        // Add creator as owner member
-        DashboardMember ownerMember = new DashboardMember(savedDashboard, user, DashboardRole.OWNER);
-        dashboardMemberRepository.save(ownerMember);
-
-        return toResponse(savedDashboard);
+    if (dashboardRepository.existsByUser_IdAndNameIgnoreCase(
+            user.getId(),
+            dashboardName
+    )) {
+        throw ApiError.badRequest(
+                "Dashboard with this name already exists"
+        );
     }
+
+    Dashboard dashboard = new Dashboard();
+    dashboard.setUser(user);
+    dashboard.setName(dashboardName);
+
+    Dashboard savedDashboard = dashboardRepository.save(dashboard);
+
+    DashboardMember ownerMember = new DashboardMember(
+            savedDashboard,
+            user,
+            DashboardRole.OWNER
+    );
+
+    dashboardMemberRepository.save(ownerMember);
+
+    return toResponse(savedDashboard);
+}
 
     @Transactional(readOnly = true)
     public DashboardResponseDto getDashboardById(Long id, CustomUserDetails userDetails) {
@@ -68,7 +81,40 @@ public class DashboardService {
         Dashboard dashboard = authorizationService.getDashboardOrThrow(id);
         dashboardRepository.delete(dashboard);
     }
+@Transactional
+public DashboardResponseDto renameDashboard(
+        Long dashboardId,
+        String newName,
+        CustomUserDetails userDetails) {
 
+    UserModel user = requireAuthenticatedUser(userDetails);
+
+    authorizationService.validateDashboardOwnerAccess(
+            user.getId(),
+            dashboardId
+    );
+
+    Dashboard dashboard =
+            authorizationService.getDashboardOrThrow(dashboardId);
+
+    String normalizedName = normalizeName(newName);
+
+    if (dashboardRepository.existsByUser_IdAndNameIgnoreCase(
+            user.getId(),
+            normalizedName
+    ) && !dashboard.getName().equalsIgnoreCase(normalizedName)) {
+
+        throw ApiError.badRequest(
+                "Dashboard with this name already exists"
+        );
+    }
+
+    dashboard.setName(normalizedName);
+
+    Dashboard savedDashboard = dashboardRepository.save(dashboard);
+
+    return toResponse(savedDashboard);
+}
     @Transactional
     public void transferOwnership(Long dashboardId, Long targetUserId, CustomUserDetails userDetails) {
         UserModel currentUser = requireAuthenticatedUser(userDetails);
@@ -105,7 +151,25 @@ public class DashboardService {
             throw ApiError.badRequest("Dashboard name is required");
         }
 
-        return name.trim();
+        String normalizedName = name.trim().replaceAll("\\s+", " ");
+
+    if (normalizedName.length() < 3) {
+        throw ApiError.badRequest(
+                "Dashboard name must contain at least 3 characters"
+        );
+    }
+    if (normalizedName.length() > 255) {
+    throw ApiError.badRequest(
+            "Dashboard name cannot exceed 255 characters"
+    );
+    }
+    if (normalizedName.matches("\\d+")) {
+    throw ApiError.badRequest(
+            "Dashboard name cannot contain only numbers"
+    );
+}
+
+    return normalizedName;
     }
 
     private DashboardResponseDto toResponse(Dashboard dashboard) {
