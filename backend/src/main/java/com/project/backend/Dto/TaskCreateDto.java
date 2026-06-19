@@ -25,6 +25,7 @@ public class TaskCreateDto {
     private Long statusId;
 
     private Priority priority;
+    private LocalDate startDate;
     private LocalDate deadline;
 
     @NotNull

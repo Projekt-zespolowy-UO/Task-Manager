@@ -16,6 +16,7 @@ public class TaskResponseDto {
     private Long statusId;
     private String statusName;
     private Priority priority;
+    private LocalDate startDate;
     private LocalDate deadline;
     private Long categoryId;
     private Long dashboardId;

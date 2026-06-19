@@ -41,6 +41,9 @@ public class TaskModel {
     @Enumerated(EnumType.STRING)
     private Priority priority;
 
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
     private LocalDate deadline;
 
     @Column(name = "due_notification_sent_at")

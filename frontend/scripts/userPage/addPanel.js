@@ -44,6 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const taskModalTitle = document.getElementById("task-modal-title");
   const taskPriorityInput = document.getElementById("task-priority-input");
+  const taskStartDateInput = document.getElementById("task-start-date-input");
   const taskDeadlineInput = document.getElementById("task-deadline-input");
   const taskCategoryInput = document.getElementById("task-category-input");
 
@@ -100,6 +101,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (taskDeadlineInput.value) {
       payload.deadline = taskDeadlineInput.value;
+    }
+    if (taskStartDateInput.value) {
+      payload.startDate = taskStartDateInput.value;
     }
 
     return payload;
@@ -298,6 +302,7 @@ document.addEventListener("DOMContentLoaded", () => {
     taskNameInput.value = "";
     taskDescriptionInput.value = "";
     taskPriorityInput.value = "MEDIUM";
+    taskStartDateInput.value = "";
     taskDeadlineInput.value = "";
     taskNameInput.focus();
   }
@@ -313,6 +318,7 @@ document.addEventListener("DOMContentLoaded", () => {
     taskNameInput.value = task.title || task.name || "";
     taskDescriptionInput.value = task.description || "";
     taskPriorityInput.value = task.priority || "MEDIUM";
+    taskStartDateInput.value = task.startDate || "";
     taskDeadlineInput.value = task.deadline || "";
     taskNameInput.focus();
   }
@@ -322,6 +328,7 @@ document.addEventListener("DOMContentLoaded", () => {
     taskNameInput.value = "";
     taskDescriptionInput.value = "";
     taskPriorityInput.value = "MEDIUM";
+    taskStartDateInput.value = "";
     taskDeadlineInput.value = "";
     taskCategoryInput.innerHTML = "";
     activeStatusId = "";

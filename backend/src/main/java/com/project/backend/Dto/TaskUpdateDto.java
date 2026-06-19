@@ -27,6 +27,7 @@ public class TaskUpdateDto {
     @NotNull
     private Priority priority;
 
+    private LocalDate startDate;
     private LocalDate deadline;
 
     @NotNull

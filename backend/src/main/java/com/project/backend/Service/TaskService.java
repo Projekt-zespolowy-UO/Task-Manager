@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
@@ -99,6 +100,7 @@ public class TaskService {
                     "Description",
                     "Status",
                     "Priority",
+                    "Start Date",
                     "Deadline",
                     "Category ID",
                     "Category Name",
@@ -148,10 +150,12 @@ public class TaskService {
                 user.getId());
 
         TaskModel task = new TaskModel();
+        validateSchedule(dto.getStartDate(), dto.getDeadline());
         task.setTitle(normalizeRequiredTitle(dto.getTitle()));
         task.setDescription(dto.getDescription());
         task.setStatus(status);
         task.setPriority(dto.getPriority() != null ? dto.getPriority() : Priority.MEDIUM);
+        task.setStartDate(dto.getStartDate());
         task.setDeadline(dto.getDeadline());
         task.setCategory(category);
         task.setUser(user);
@@ -170,10 +174,12 @@ public class TaskService {
             throw ApiError.badRequest("Task does not belong to a dashboard");
         }
 
+        validateSchedule(dto.getStartDate(), dto.getDeadline());
         task.setTitle(normalizeRequiredTitle(dto.getTitle()));
         task.setDescription(dto.getDescription());
         task.setStatus(requireStatusForDashboard(dto.getStatusId(), dashboard.getId(), user.getId()));
         task.setPriority(dto.getPriority());
+        task.setStartDate(dto.getStartDate());
         task.setDeadline(dto.getDeadline());
         task.setCategory(requireCategoryForDashboard(dto.getCategoryId(), dashboard.getId(), user.getId()));
 
@@ -201,6 +207,9 @@ public class TaskService {
         if (dto.getPriority() != null) {
             task.setPriority(dto.getPriority());
         }
+        if (dto.getStartDate() != null) {
+            task.setStartDate(dto.getStartDate());
+        }
         if (dto.getDeadline() != null) {
             task.setDeadline(dto.getDeadline());
         }
@@ -212,6 +221,7 @@ public class TaskService {
                     user.getId()));
         }
 
+        validateSchedule(task.getStartDate(), task.getDeadline());
         return toResponse(taskRepository.save(task));
     }
 
@@ -339,6 +349,7 @@ public class TaskService {
                 csvValue(task.getDescription()),
                 csvValue(status != null ? status.getName() : null),
                 csvValue(task.getPriority()),
+                csvValue(task.getStartDate()),
                 csvValue(task.getDeadline()),
                 csvValue(category != null ? category.getId() : null),
                 csvValue(category != null ? category.getName() : null),
@@ -363,6 +374,12 @@ public class TaskService {
         return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 
+    private void validateSchedule(LocalDate startDate, LocalDate deadline) {
+        if (startDate != null && deadline != null && startDate.isAfter(deadline)) {
+            throw ApiError.badRequest("Task start date must not be after the deadline");
+        }
+    }
+
     private TaskResponseDto toResponse(TaskModel task) {
         CategoryModel category = task.getCategory();
 
@@ -373,6 +390,7 @@ public class TaskService {
                 task.getStatus() != null ? task.getStatus().getId() : null,
                 task.getStatus() != null ? task.getStatus().getName() : null,
                 task.getPriority(),
+                task.getStartDate(),
                 task.getDeadline(),
                 category != null ? category.getId() : null,
                 task.getDashboard() != null ? task.getDashboard().getId() : null);

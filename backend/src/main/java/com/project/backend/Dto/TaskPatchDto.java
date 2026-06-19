@@ -22,6 +22,7 @@ public class TaskPatchDto {
 
     private Priority priority;
 
+    private LocalDate startDate;
     private LocalDate deadline;
 
     private Long categoryId;
