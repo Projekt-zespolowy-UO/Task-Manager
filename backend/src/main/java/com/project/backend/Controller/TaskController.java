@@ -1,5 +1,6 @@
 package com.project.backend.Controller;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -60,15 +61,9 @@ public class TaskController {
             @RequestParam(required = false) Long statusId,
             @RequestParam(required = false) String search) {
 
-        // Debug: check if userDetails is null
-        if (userDetails == null) {
-            System.out.println("🔴 DEBUG: userDetails is NULL in exportTasksCsv!");
-            throw new RuntimeException("User not authenticated");
-        }
-
-        System.out.println("🟢 DEBUG: exportTasksCsv called for user: " + userDetails.getUsername());
-
-        String filename = "tasks-" + LocalDate.now() + ".csv";
+        String filename = dashboardId == null
+                ? "tasks-" + LocalDate.now() + ".csv"
+                : "tasks-dashboard-" + dashboardId + "-" + LocalDate.now() + ".csv";
         byte[] csvData = taskService.getTasksCsvAsBytes(
                 userDetails,
                 dashboardId,
@@ -80,7 +75,10 @@ public class TaskController {
                 .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(filename).build().toString())
+                        ContentDisposition.attachment()
+                                .filename(filename, StandardCharsets.UTF_8)
+                                .build()
+                                .toString())
                 .body(csvData);
     }
 

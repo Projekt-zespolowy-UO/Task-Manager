@@ -96,15 +96,14 @@ public class TaskService {
                 new OutputStreamWriter(outputStream, StandardCharsets.UTF_8))) {
             writeCsvRow(writer, List.of(
                     "ID",
-                    "Title",
-                    "Description",
+                    "Tytul",
+                    "Opis",
                     "Status",
-                    "Priority",
-                    "Start Date",
-                    "Deadline",
-                    "Category ID",
-                    "Category Name",
-                    "Dashboard ID"));
+                    "Priorytet",
+                    "Data rozpoczecia",
+                    "Termin zakonczenia",
+                    "Kategoria",
+                    "Workspace"));
 
             int pageNumber = 0;
             Slice<TaskModel> taskPage;
@@ -351,9 +350,8 @@ public class TaskService {
                 csvValue(task.getPriority()),
                 csvValue(task.getStartDate()),
                 csvValue(task.getDeadline()),
-                csvValue(category != null ? category.getId() : null),
                 csvValue(category != null ? category.getName() : null),
-                csvValue(dashboard != null ? dashboard.getId() : null));
+                csvValue(dashboard != null ? dashboard.getName() : null));
     }
 
     private String csvValue(Object value) {
