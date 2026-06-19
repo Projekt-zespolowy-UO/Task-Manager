@@ -683,17 +683,15 @@ document.addEventListener("DOMContentLoaded", () => {
     container.innerHTML = `
       <div class="gantt-wrapper">
         <div class="gantt-toolbar">
-          <div>
-            <strong class="gantt-toolbar-title">Harmonogram</strong>
-            <span class="gantt-summary">
-              ${scheduledTasks.length} zaplanowanych
-              ${unscheduledTasks.length ? ` · ${unscheduledTasks.length} bez terminu` : ""}
-            </span>
+          <div class="gantt-toolbar-heading">
+            <strong class="gantt-toolbar-title">Gantt Chart</strong>
+            <span class="gantt-summary">${visibleTasks.length} zadan w planie</span>
           </div>
           <div class="gantt-controls">
-            <button type="button" data-action="gantt-zoom-out" title="Pomniejsz">-</button>
+            <span class="gantt-control-label">Skala</span>
+            <button type="button" data-action="gantt-zoom-out" title="Pomniejsz skale">-</button>
             <span>${escapeHtml(zoom.name)}</span>
-            <button type="button" data-action="gantt-zoom-in" title="Powieksz">+</button>
+            <button type="button" data-action="gantt-zoom-in" title="Powieksz skale">+</button>
             <button type="button" data-action="gantt-today">Dzisiaj</button>
             <button type="button" data-action="gantt-fit">Dopasuj</button>
           </div>
@@ -706,9 +704,14 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         <div class="gantt-scroll">
           <div class="gantt-calendar-header" ${gridStyle}>
-            <div class="gantt-sticky-cell gantt-header-cell">
-              <span>Zadanie</span>
-              <small>Status i zakres</small>
+            <div class="gantt-sticky-cell gantt-task-grid gantt-task-grid-header">
+              <span>ID</span>
+              <span>Task Name</span>
+              <span>Duration</span>
+              <span>Start</span>
+              <span>Finish</span>
+              <span>Status</span>
+              <span>Priority</span>
             </div>
             <div class="gantt-calendar-scale">
               <div class="gantt-month-row">
@@ -738,10 +741,9 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               ${todayLine}
             </div>
-            <div class="gantt-header-cell gantt-actions-cell">Akcje</div>
           </div>
           ${scheduledTasks
-            .map((task) => {
+            .map((task, index) => {
               const schedule = getTaskSchedule(task);
               const statusId = String(task.statusId || "");
               const left =
@@ -763,11 +765,17 @@ document.addEventListener("DOMContentLoaded", () => {
                   data-status-id="${statusId}"
                   data-description="${escapeHtml(task.description || "")}"
                 >
-                  <div class="gantt-task-info gantt-sticky-cell">
-                    <span class="gantt-task-title">${escapeHtml(task.title || "Task")}</span>
-                    <span class="gantt-task-meta">
-                      ${escapeHtml(task.statusName || getStatusName(statusId))}
-                      <b>${escapeHtml(dateLabel)}</b>
+                  <div class="gantt-sticky-cell gantt-task-grid">
+                    <span class="gantt-id-cell">${index + 1}</span>
+                    <button class="gantt-name-cell" type="button" data-action="edit-task">
+                      ${escapeHtml(task.title || "Task")}
+                    </button>
+                    <span>${schedule.durationDays} d.</span>
+                    <span>${escapeHtml(formatDate(task.startDate || task.deadline))}</span>
+                    <span>${escapeHtml(formatDate(task.deadline))}</span>
+                    <span class="gantt-status-cell">${escapeHtml(task.statusName || getStatusName(statusId))}</span>
+                    <span class="gantt-priority-cell ${getPriorityClass(task.priority)}">
+                      ${escapeHtml(task.priority || "MEDIUM")}
                     </span>
                   </div>
                   <div class="gantt-timeline">
@@ -780,17 +788,13 @@ document.addEventListener("DOMContentLoaded", () => {
                       data-task-id="${task.id}"
                       data-start-date="${toDateInputValue(schedule.startDate)}"
                       data-deadline="${toDateInputValue(schedule.deadline)}"
-                      title="${escapeHtml(task.title || "Task")} · ${escapeHtml(dateLabel)}"
+                      title="${escapeHtml(task.title || "Task")} - ${escapeHtml(dateLabel)}"
                     >
                       <i class="gantt-resize-handle is-start" data-resize="start"></i>
                       <span>${escapeHtml(task.title || "Task")}</span>
                       <small>${schedule.durationDays} d.</small>
                       <i class="gantt-resize-handle is-end" data-resize="end"></i>
                     </button>
-                  </div>
-                  <div class="gantt-row-actions gantt-actions-cell">
-                    <button type="button" data-action="expand-task">Szczegoly</button>
-                    <button type="button" data-action="edit-task">Edytuj</button>
                   </div>
                 </div>
               `;
@@ -800,12 +804,11 @@ document.addEventListener("DOMContentLoaded", () => {
             unscheduledTasks.length
               ? `
                 <div class="gantt-section-label" ${gridStyle}>
-                  <span class="gantt-sticky-cell">Bez terminu</span>
+                  <span class="gantt-sticky-cell">Zadania bez harmonogramu</span>
                   <span></span>
-                  <span class="gantt-actions-cell"></span>
                 </div>
                 ${unscheduledTasks
-                  .map((task) => {
+                  .map((task, index) => {
                     const statusId = String(task.statusId || "");
                     return `
                       <div
@@ -814,17 +817,23 @@ document.addEventListener("DOMContentLoaded", () => {
                         data-task-id="${task.id}"
                         data-status-id="${statusId}"
                       >
-                        <div class="gantt-task-info gantt-sticky-cell">
-                          <span class="gantt-task-title">${escapeHtml(task.title || "Task")}</span>
-                          <span class="gantt-task-meta">${escapeHtml(task.statusName || getStatusName(statusId))}</span>
+                        <div class="gantt-sticky-cell gantt-task-grid">
+                          <span class="gantt-id-cell">${scheduledTasks.length + index + 1}</span>
+                          <button class="gantt-name-cell" type="button" data-action="edit-task">
+                            ${escapeHtml(task.title || "Task")}
+                          </button>
+                          <span>-</span>
+                          <span>-</span>
+                          <span>-</span>
+                          <span class="gantt-status-cell">${escapeHtml(task.statusName || getStatusName(statusId))}</span>
+                          <span class="gantt-priority-cell ${getPriorityClass(task.priority)}">
+                            ${escapeHtml(task.priority || "MEDIUM")}
+                          </span>
                         </div>
                         <div class="gantt-unscheduled-track">
                           <button type="button" data-action="edit-task">
-                            Ustaw zakres dat
+                            Ustaw daty
                           </button>
-                        </div>
-                        <div class="gantt-row-actions gantt-actions-cell">
-                          <button type="button" data-action="edit-task">Zaplanuj</button>
                         </div>
                       </div>
                     `;
