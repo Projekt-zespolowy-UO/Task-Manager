@@ -737,10 +737,53 @@ header {
   border: 0;
   border-radius: 5px;
   color: white;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
   background: #6f86ff;
   box-shadow: none;
   overflow: hidden;
+}
+
+.gantt-bar.is-dragging {
+  z-index: 3;
+  cursor: grabbing;
+  filter: brightness(1.12);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.34);
+}
+
+.gantt-resize-handle {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 6px;
+  border-radius: 3px;
+  cursor: ew-resize;
+}
+
+.gantt-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 2px;
+  width: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.52);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.gantt-bar:hover .gantt-resize-handle::after,
+.gantt-bar.is-dragging .gantt-resize-handle::after {
+  opacity: 1;
+}
+
+.gantt-resize-handle.is-start {
+  left: 2px;
+}
+
+.gantt-resize-handle.is-end {
+  right: 2px;
 }
 
 .gantt-bar.priority-high {

@@ -67,6 +67,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let activeView = viewSelect?.value || "board";
   let ganttZoomIndex = 1;
   let ganttScrollTarget = null;
+  let ganttPointerState = null;
+  let suppressNextGanttClick = false;
   let dashboards = [];
   let categories = [];
   let tasks = [];
@@ -165,6 +167,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const date = new Date(`${value}T00:00:00`);
     return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function toDateInputValue(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
 
   function addDays(date, days) {
@@ -939,10 +948,15 @@ document.addEventListener("DOMContentLoaded", () => {
                       style="left:${left}px; width:${width}px;"
                       type="button"
                       data-action="edit-task"
+                      data-task-id="${task.id}"
+                      data-start-date="${toDateInputValue(schedule.startDate)}"
+                      data-deadline="${toDateInputValue(schedule.deadline)}"
                       title="${escapeHtml(task.title || "Task")} · ${escapeHtml(dateLabel)}"
                     >
+                      <i class="gantt-resize-handle is-start" data-resize="start"></i>
                       <span>${escapeHtml(task.title || "Task")}</span>
                       <small>${schedule.durationDays} d.</small>
+                      <i class="gantt-resize-handle is-end" data-resize="end"></i>
                     </button>
                   </div>
                   <div class="gantt-row-actions gantt-actions-cell">
@@ -1640,8 +1654,138 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  container.addEventListener("pointerdown", (event) => {
+    const bar = event.target.closest(".gantt-bar");
+
+    if (!bar || activeView !== "gantt") {
+      return;
+    }
+
+    const row = bar.closest(".gantt-task-row");
+    const taskId = Number(bar.dataset.taskId);
+    const startDate = parseTaskDate(bar.dataset.startDate);
+    const deadline = parseTaskDate(bar.dataset.deadline);
+    const dayWidth = Number.parseFloat(
+      getComputedStyle(row).getPropertyValue("--gantt-day-width"),
+    );
+
+    if (!taskId || !startDate || !deadline || !dayWidth) {
+      return;
+    }
+
+    event.preventDefault();
+    bar.setPointerCapture?.(event.pointerId);
+    ganttPointerState = {
+      bar,
+      taskId,
+      mode: event.target.dataset.resize || "move",
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      dayWidth,
+      startDate,
+      deadline,
+      deltaDays: 0,
+      moved: false,
+      originalLeft: Number.parseFloat(bar.style.left) || 0,
+      originalWidth: Number.parseFloat(bar.style.width) || dayWidth,
+    };
+    bar.classList.add("is-dragging");
+  });
+
+  window.addEventListener("pointermove", (event) => {
+    if (!ganttPointerState || event.pointerId !== ganttPointerState.pointerId) {
+      return;
+    }
+
+    const deltaPixels = event.clientX - ganttPointerState.startX;
+    const deltaDays = Math.round(deltaPixels / ganttPointerState.dayWidth);
+
+    if (deltaDays === ganttPointerState.deltaDays) {
+      return;
+    }
+
+    ganttPointerState.deltaDays = deltaDays;
+    ganttPointerState.moved = ganttPointerState.moved || deltaDays !== 0;
+
+    const { bar, mode, originalLeft, originalWidth, dayWidth } =
+      ganttPointerState;
+
+    if (mode === "start") {
+      const maxDelta = Math.floor(originalWidth / dayWidth) - 1;
+      const safeDelta = Math.min(deltaDays, maxDelta);
+      bar.style.left = `${originalLeft + safeDelta * dayWidth}px`;
+      bar.style.width = `${originalWidth - safeDelta * dayWidth}px`;
+      ganttPointerState.deltaDays = safeDelta;
+    } else if (mode === "end") {
+      const minDelta = -Math.floor(originalWidth / dayWidth) + 1;
+      const safeDelta = Math.max(deltaDays, minDelta);
+      bar.style.width = `${originalWidth + safeDelta * dayWidth}px`;
+      ganttPointerState.deltaDays = safeDelta;
+    } else {
+      bar.style.left = `${originalLeft + deltaDays * dayWidth}px`;
+    }
+  });
+
+  window.addEventListener("pointerup", async (event) => {
+    if (!ganttPointerState || event.pointerId !== ganttPointerState.pointerId) {
+      return;
+    }
+
+    const interaction = ganttPointerState;
+    ganttPointerState = null;
+    interaction.bar.classList.remove("is-dragging");
+
+    if (!interaction.moved || interaction.deltaDays === 0) {
+      return;
+    }
+
+    let nextStartDate = interaction.startDate;
+    let nextDeadline = interaction.deadline;
+
+    if (interaction.mode === "start") {
+      nextStartDate = addDays(interaction.startDate, interaction.deltaDays);
+    } else if (interaction.mode === "end") {
+      nextDeadline = addDays(interaction.deadline, interaction.deltaDays);
+    } else {
+      nextStartDate = addDays(interaction.startDate, interaction.deltaDays);
+      nextDeadline = addDays(interaction.deadline, interaction.deltaDays);
+    }
+
+    suppressNextGanttClick = true;
+
+    try {
+      const updatedTask = await apiRequest(
+        `${TASKS_API_PATH}/${interaction.taskId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            startDate: toDateInputValue(nextStartDate),
+            deadline: toDateInputValue(nextDeadline),
+          }),
+        },
+      );
+
+      tasks = tasks.map((task) =>
+        Number(task.id) === interaction.taskId
+          ? { ...task, ...updatedTask }
+          : task,
+      );
+    } catch (error) {
+      console.error("Failed to update task schedule:", error);
+      alert("Nie udalo sie zmienic harmonogramu zadania.");
+    }
+
+    renderDashboard();
+  });
+
   container.addEventListener("click", async (event) => {
-    const action = event.target.dataset.action;
+    if (suppressNextGanttClick && event.target.closest(".gantt-bar")) {
+      suppressNextGanttClick = false;
+      event.preventDefault();
+      return;
+    }
+
+    const action = event.target.closest("[data-action]")?.dataset.action;
     const panelElement = event.target.closest(".task-panel");
     const taskElement = event.target.closest(".task-item, .gantt-task-row");
 
