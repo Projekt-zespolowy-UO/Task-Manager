@@ -5,8 +5,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.project.backend.Enum.DashboardRole;
 import com.project.backend.Dto.DashboardResponseDto;
+import com.project.backend.Enum.DashboardRole;
 import com.project.backend.Exception.ApiError;
 import com.project.backend.Model.Dashboard;
 import com.project.backend.Model.DashboardMember;
@@ -67,6 +67,29 @@ public class DashboardService {
         authorizationService.validateDashboardOwnerAccess(user.getId(), id);
         Dashboard dashboard = authorizationService.getDashboardOrThrow(id);
         dashboardRepository.delete(dashboard);
+    }
+
+    @Transactional
+    public void transferOwnership(Long dashboardId, Long targetUserId, CustomUserDetails userDetails) {
+        UserModel currentUser = requireAuthenticatedUser(userDetails);
+        Dashboard dashboard = authorizationService.getDashboardOrThrow(dashboardId);
+        authorizationService.validateDashboardOwnerAccess(currentUser.getId(), dashboardId);
+    if (currentUser.getId().equals(targetUserId)) {
+    throw ApiError.badRequest("Cannot transfer ownership to yourself");
+    }
+        DashboardMember targetMember = authorizationService.getMemberOrThrow(dashboardId, targetUserId);
+        if (targetMember.getRole() == DashboardRole.OWNER) {
+            throw ApiError.badRequest("Target user is already the dashboard owner");
+        }
+
+        DashboardMember currentOwnerMember = authorizationService.getOwnerMember(dashboardId);
+        currentOwnerMember.setRole(DashboardRole.MEMBER);
+        targetMember.setRole(DashboardRole.OWNER);
+        dashboard.setUser(targetMember.getUser());
+
+        dashboardMemberRepository.save(currentOwnerMember);
+        dashboardMemberRepository.save(targetMember);
+        dashboardRepository.save(dashboard);
     }
 
     private UserModel requireAuthenticatedUser(CustomUserDetails userDetails) {
