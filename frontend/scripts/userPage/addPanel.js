@@ -144,6 +144,29 @@ document.addEventListener("DOMContentLoaded", () => {
     return date.toLocaleDateString("pl-PL");
   }
 
+  function formatCompactDate(date) {
+    return date.toLocaleDateString("pl-PL", {
+      day: "2-digit",
+      month: "short",
+    });
+  }
+
+  function formatMonth(date) {
+    return date.toLocaleDateString("pl-PL", {
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  function parseTaskDate(value) {
+    if (!value) {
+      return null;
+    }
+
+    const date = new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
   function addDays(date, days) {
     const nextDate = new Date(date);
     nextDate.setDate(nextDate.getDate() + days);
@@ -177,6 +200,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getPriorityClass(priority) {
     return `priority-${String(priority || "medium").toLowerCase()}`;
+  }
+
+  function getTaskSchedule(task) {
+    const deadline = parseTaskDate(task.deadline);
+    const startDate = parseTaskDate(task.startDate) || deadline;
+
+    if (!startDate || !deadline) {
+      return null;
+    }
+
+    return {
+      startDate,
+      deadline,
+      durationDays: Math.max(1, getDaysBetween(startDate, deadline) + 1),
+    };
+  }
+
+  function getTaskStateClass(task, today) {
+    const deadline = parseTaskDate(task.deadline);
+    const statusName = String(task.statusName || getStatusName(task.statusId))
+      .trim()
+      .toLowerCase();
+
+    if (statusName === "done" || statusName === "completed") {
+      return "is-complete";
+    }
+
+    if (deadline && deadline < today) {
+      return "is-overdue";
+    }
+
+    return "";
   }
 
   function getFloatingMenuPosition(triggerElement, menuWidth = 160) {
@@ -532,7 +587,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   }
 
-  function renderGanttView() {
+  function renderLegacyGanttView() {
     const visibleTasks = getFilteredTasks();
     const datedTasks = visibleTasks.filter((task) => task.deadline);
     const undatedTasks = visibleTasks.filter((task) => !task.deadline);
@@ -687,6 +742,254 @@ document.addEventListener("DOMContentLoaded", () => {
               `;
             })
             .join("")}
+        </div>
+      </div>
+    `;
+
+    const ganttScroll = container.querySelector(".gantt-scroll");
+
+    if (ganttScroll && ganttScrollTarget === "today") {
+      ganttScroll.scrollLeft = Math.max(
+        0,
+        todayOffset * zoom.dayWidth - ganttScroll.clientWidth / 2,
+      );
+    }
+
+    ganttScrollTarget = null;
+  }
+
+  function renderGanttView() {
+    const visibleTasks = getFilteredTasks();
+    const scheduledTasks = visibleTasks.filter((task) => getTaskSchedule(task));
+    const unscheduledTasks = visibleTasks.filter(
+      (task) => !getTaskSchedule(task),
+    );
+    const zoom = getGanttZoom();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const scheduleDates = scheduledTasks.flatMap((task) => {
+      const schedule = getTaskSchedule(task);
+      return [schedule.startDate, schedule.deadline];
+    });
+    const earliestDate = scheduleDates.length
+      ? new Date(
+          Math.min(today.getTime(), ...scheduleDates.map((date) => date.getTime())),
+        )
+      : addDays(today, -3);
+    const latestDate = scheduleDates.length
+      ? new Date(
+          Math.max(today.getTime(), ...scheduleDates.map((date) => date.getTime())),
+        )
+      : addDays(today, 14);
+    const rangeStart = addDays(earliestDate, -3);
+    const rangeEnd = addDays(latestDate, 5);
+    const totalDays = Math.max(1, getDaysBetween(rangeStart, rangeEnd) + 1);
+    const timelineWidth = Math.max(720, totalDays * zoom.dayWidth);
+    const gridStyle = `style="--gantt-timeline-width:${timelineWidth}px; --gantt-day-width:${zoom.dayWidth}px;"`;
+    const todayOffset = getDaysBetween(rangeStart, today);
+    const dayMarkers = [];
+    const monthBands = [];
+
+    for (let offset = 0; offset < totalDays; offset += zoom.scaleStep) {
+      const date = addDays(rangeStart, offset);
+      dayMarkers.push({
+        date,
+        left: offset * zoom.dayWidth,
+        isWeekend: date.getDay() === 0 || date.getDay() === 6,
+      });
+    }
+
+    let monthCursor = new Date(
+      rangeStart.getFullYear(),
+      rangeStart.getMonth(),
+      1,
+    );
+    while (monthCursor <= rangeEnd) {
+      const monthStart = monthCursor < rangeStart ? rangeStart : monthCursor;
+      const nextMonth = new Date(
+        monthCursor.getFullYear(),
+        monthCursor.getMonth() + 1,
+        1,
+      );
+      const monthEnd = addDays(nextMonth, -1) > rangeEnd
+        ? rangeEnd
+        : addDays(nextMonth, -1);
+      const left = Math.max(0, getDaysBetween(rangeStart, monthStart))
+        * zoom.dayWidth;
+      const width = (getDaysBetween(monthStart, monthEnd) + 1) * zoom.dayWidth;
+
+      monthBands.push({
+        label: formatMonth(monthCursor),
+        left,
+        width,
+      });
+      monthCursor = nextMonth;
+    }
+
+    container.className = "task-container gantt-view";
+
+    if (!visibleTasks.length) {
+      container.innerHTML = `
+        <div class="gantt-wrapper">
+          <div class="empty-state">Brak zadan do wyswietlenia.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const todayLine = todayOffset >= 0 && todayOffset < totalDays
+      ? `<span class="gantt-today-line" style="left:${todayOffset * zoom.dayWidth}px;"></span>`
+      : "";
+
+    container.innerHTML = `
+      <div class="gantt-wrapper">
+        <div class="gantt-toolbar">
+          <div>
+            <strong class="gantt-toolbar-title">Harmonogram</strong>
+            <span class="gantt-summary">
+              ${scheduledTasks.length} zaplanowanych
+              ${unscheduledTasks.length ? ` · ${unscheduledTasks.length} bez terminu` : ""}
+            </span>
+          </div>
+          <div class="gantt-controls">
+            <button type="button" data-action="gantt-zoom-out" title="Pomniejsz">-</button>
+            <span>${escapeHtml(zoom.name)}</span>
+            <button type="button" data-action="gantt-zoom-in" title="Powieksz">+</button>
+            <button type="button" data-action="gantt-today">Dzisiaj</button>
+            <button type="button" data-action="gantt-fit">Dopasuj</button>
+          </div>
+        </div>
+        <div class="gantt-legend">
+          <span><i class="legend-dot priority-high"></i>Wysoki</span>
+          <span><i class="legend-dot priority-medium"></i>Sredni</span>
+          <span><i class="legend-dot priority-low"></i>Niski</span>
+          <span><i class="legend-dot is-overdue"></i>Po terminie</span>
+        </div>
+        <div class="gantt-scroll">
+          <div class="gantt-calendar-header" ${gridStyle}>
+            <div class="gantt-sticky-cell gantt-header-cell">
+              <span>Zadanie</span>
+              <small>Status i zakres</small>
+            </div>
+            <div class="gantt-calendar-scale">
+              <div class="gantt-month-row">
+                ${monthBands
+                  .map(
+                    (month) => `
+                      <span style="left:${month.left}px; width:${month.width}px;">
+                        ${escapeHtml(month.label)}
+                      </span>
+                    `,
+                  )
+                  .join("")}
+              </div>
+              <div class="gantt-day-row">
+                ${dayMarkers
+                  .map(
+                    (marker) => `
+                      <span
+                        class="${marker.isWeekend ? "is-weekend" : ""}"
+                        style="left:${marker.left}px; width:${zoom.dayWidth * zoom.scaleStep}px;"
+                      >
+                        ${escapeHtml(formatCompactDate(marker.date))}
+                      </span>
+                    `,
+                  )
+                  .join("")}
+              </div>
+              ${todayLine}
+            </div>
+            <div class="gantt-header-cell gantt-actions-cell">Akcje</div>
+          </div>
+          ${scheduledTasks
+            .map((task) => {
+              const schedule = getTaskSchedule(task);
+              const statusId = String(task.statusId || "");
+              const left =
+                getDaysBetween(rangeStart, schedule.startDate) * zoom.dayWidth;
+              const width = Math.max(
+                zoom.dayWidth,
+                schedule.durationDays * zoom.dayWidth,
+              );
+              const stateClass = getTaskStateClass(task, today);
+              const dateLabel =
+                `${formatCompactDate(schedule.startDate)} - ` +
+                formatCompactDate(schedule.deadline);
+
+              return `
+                <div
+                  class="gantt-row gantt-task-row ${stateClass}"
+                  ${gridStyle}
+                  data-task-id="${task.id}"
+                  data-status-id="${statusId}"
+                  data-description="${escapeHtml(task.description || "")}"
+                >
+                  <div class="gantt-task-info gantt-sticky-cell">
+                    <span class="gantt-task-title">${escapeHtml(task.title || "Task")}</span>
+                    <span class="gantt-task-meta">
+                      ${escapeHtml(task.statusName || getStatusName(statusId))}
+                      <b>${escapeHtml(dateLabel)}</b>
+                    </span>
+                  </div>
+                  <div class="gantt-timeline">
+                    ${todayLine}
+                    <button
+                      class="gantt-bar ${getPriorityClass(task.priority)} ${stateClass}"
+                      style="left:${left}px; width:${width}px;"
+                      type="button"
+                      data-action="edit-task"
+                      title="${escapeHtml(task.title || "Task")} · ${escapeHtml(dateLabel)}"
+                    >
+                      <span>${escapeHtml(task.title || "Task")}</span>
+                      <small>${schedule.durationDays} d.</small>
+                    </button>
+                  </div>
+                  <div class="gantt-row-actions gantt-actions-cell">
+                    <button type="button" data-action="expand-task">Szczegoly</button>
+                    <button type="button" data-action="edit-task">Edytuj</button>
+                  </div>
+                </div>
+              `;
+            })
+            .join("")}
+          ${
+            unscheduledTasks.length
+              ? `
+                <div class="gantt-section-label" ${gridStyle}>
+                  <span class="gantt-sticky-cell">Bez terminu</span>
+                  <span></span>
+                  <span class="gantt-actions-cell"></span>
+                </div>
+                ${unscheduledTasks
+                  .map((task) => {
+                    const statusId = String(task.statusId || "");
+                    return `
+                      <div
+                        class="gantt-row gantt-task-row is-unscheduled"
+                        ${gridStyle}
+                        data-task-id="${task.id}"
+                        data-status-id="${statusId}"
+                      >
+                        <div class="gantt-task-info gantt-sticky-cell">
+                          <span class="gantt-task-title">${escapeHtml(task.title || "Task")}</span>
+                          <span class="gantt-task-meta">${escapeHtml(task.statusName || getStatusName(statusId))}</span>
+                        </div>
+                        <div class="gantt-unscheduled-track">
+                          <button type="button" data-action="edit-task">
+                            Ustaw zakres dat
+                          </button>
+                        </div>
+                        <div class="gantt-row-actions gantt-actions-cell">
+                          <button type="button" data-action="edit-task">Zaplanuj</button>
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              `
+              : ""
+          }
         </div>
       </div>
     `;
