@@ -366,7 +366,7 @@ document.addEventListener("DOMContentLoaded", () => {
     taskNameInput.value = "";
     taskDescriptionInput.value = "";
     taskPriorityInput.value = "MEDIUM";
-    taskStartDateInput.value = "";
+    taskStartDateInput.value = toDateInputValue(new Date());
     taskDeadlineInput.value = "";
     taskNameInput.focus();
   }
@@ -594,177 +594,6 @@ document.addEventListener("DOMContentLoaded", () => {
         Dodaj status
       </button>
     `;
-  }
-
-  function renderLegacyGanttView() {
-    const visibleTasks = getFilteredTasks();
-    const datedTasks = visibleTasks.filter((task) => task.deadline);
-    const undatedTasks = visibleTasks.filter((task) => !task.deadline);
-    const dayMs = 24 * 60 * 60 * 1000;
-    const zoom = getGanttZoom();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const taskDates = datedTasks
-      .map((task) => new Date(`${task.deadline}T00:00:00`))
-      .filter((date) => !Number.isNaN(date.getTime()));
-    const minDate = taskDates.length
-      ? new Date(
-          Math.min(today.getTime(), ...taskDates.map((date) => date.getTime())),
-        )
-      : today;
-    const maxDate = taskDates.length
-      ? new Date(
-          Math.max(today.getTime(), ...taskDates.map((date) => date.getTime())),
-        )
-      : new Date(today.getTime() + 6 * dayMs);
-    const totalDays = Math.max(1, Math.round((maxDate - minDate) / dayMs) + 1);
-    const timelineWidth = Math.max(560, totalDays * zoom.dayWidth);
-    const gridStyle = `style="--gantt-timeline-width:${timelineWidth}px; --gantt-day-width:${zoom.dayWidth}px;"`;
-    const scaleMarkers = [];
-    const todayOffset = getDaysBetween(minDate, today);
-
-    for (let offset = 0; offset < totalDays; offset += zoom.scaleStep) {
-      scaleMarkers.push({
-        date: addDays(minDate, offset),
-        left: offset * zoom.dayWidth,
-      });
-    }
-
-    container.className = "task-container gantt-view";
-
-    if (!visibleTasks.length) {
-      container.innerHTML = `
-        <div class="gantt-wrapper">
-          <div class="empty-state">Brak zadan do wyswietlenia.</div>
-        </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = `
-      <div class="gantt-wrapper">
-        <div class="gantt-toolbar">
-          <div class="gantt-summary">
-            ${visibleTasks.length} zadan - ${escapeHtml(formatDateObject(minDate))} - ${escapeHtml(formatDateObject(maxDate))}
-          </div>
-          <div class="gantt-controls">
-            <button type="button" data-action="gantt-zoom-out">-</button>
-            <span>${escapeHtml(zoom.name)}</span>
-            <button type="button" data-action="gantt-zoom-in">+</button>
-            <button type="button" data-action="gantt-today">Dzisiaj</button>
-            <button type="button" data-action="gantt-fit">Dopasuj</button>
-          </div>
-        </div>
-        <div class="gantt-scroll">
-          <div class="gantt-header" ${gridStyle}>
-            <div class="gantt-sticky-cell gantt-header-cell">Zadanie</div>
-            <div class="gantt-scale">
-              ${scaleMarkers
-                .map(
-                  (marker) => `
-                    <span style="left:${marker.left}px;">
-                      ${escapeHtml(formatDateObject(marker.date))}
-                    </span>
-                  `,
-                )
-                .join("")}
-              ${
-                todayOffset >= 0 && todayOffset < totalDays
-                  ? `<span class="gantt-today-line" style="left:${todayOffset * zoom.dayWidth}px;"></span>`
-                  : ""
-              }
-            </div>
-            <div class="gantt-header-cell gantt-actions-cell">Akcje</div>
-          </div>
-          ${datedTasks
-            .map((task) => {
-              const statusId = String(task.statusId || "");
-              const deadline = new Date(`${task.deadline}T00:00:00`);
-              const endOffset = Math.max(
-                0,
-                Math.round((deadline - minDate) / dayMs),
-              );
-              const barLeft = endOffset * zoom.dayWidth;
-              const barWidth = Math.max(18, Math.min(zoom.dayWidth, 54));
-
-              return `
-                <div
-                  class="gantt-row gantt-task-row"
-                  ${gridStyle}
-                  data-task-id="${task.id}"
-                  data-status-id="${statusId}"
-                  data-description="${escapeHtml(task.description || "")}"
-                >
-                  <div class="gantt-task-info gantt-sticky-cell">
-                    <span class="gantt-task-title">${escapeHtml(task.title || task.name || "Task")}</span>
-                    <span class="gantt-task-meta">${escapeHtml(getStatusName(statusId))} - ${escapeHtml(task.priority || "MEDIUM")}</span>
-                  </div>
-                  <div class="gantt-timeline">
-                    ${
-                      todayOffset >= 0 && todayOffset < totalDays
-                        ? `<span class="gantt-today-line" style="left:${todayOffset * zoom.dayWidth}px;"></span>`
-                        : ""
-                    }
-                    <span
-                      class="gantt-bar ${getPriorityClass(task.priority)}"
-                      style="left:${barLeft}px; width:${barWidth}px;"
-                      title="${escapeHtml(formatDate(task.deadline))}"
-                    ></span>
-                  </div>
-                  <div class="gantt-row-actions gantt-actions-cell">
-                    <button type="button" data-action="expand-task">Rozwin</button>
-                    <button type="button" data-action="move-task">Status</button>
-                    <button type="button" data-action="edit-task">Edytuj</button>
-                    <button type="button" data-action="delete-task">Usun</button>
-                  </div>
-                </div>
-              `;
-            })
-            .join("")}
-          ${undatedTasks
-            .map((task) => {
-              const statusId = String(task.statusId || "");
-
-              return `
-                <div
-                  class="gantt-row gantt-task-row"
-                  ${gridStyle}
-                  data-task-id="${task.id}"
-                  data-status-id="${statusId}"
-                  data-description="${escapeHtml(task.description || "")}"
-                >
-                  <div class="gantt-task-info gantt-sticky-cell">
-                    <span class="gantt-task-title">${escapeHtml(task.title || task.name || "Task")}</span>
-                    <span class="gantt-task-meta">${escapeHtml(getStatusName(statusId))} - ${escapeHtml(task.priority || "MEDIUM")}</span>
-                  </div>
-                  <div class="gantt-timeline">
-                    <span class="gantt-task-meta">Brak terminu</span>
-                  </div>
-                  <div class="gantt-row-actions gantt-actions-cell">
-                    <button type="button" data-action="expand-task">Rozwin</button>
-                    <button type="button" data-action="move-task">Status</button>
-                    <button type="button" data-action="edit-task">Edytuj</button>
-                    <button type="button" data-action="delete-task">Usun</button>
-                  </div>
-                </div>
-              `;
-            })
-            .join("")}
-        </div>
-      </div>
-    `;
-
-    const ganttScroll = container.querySelector(".gantt-scroll");
-
-    if (ganttScroll && ganttScrollTarget === "today") {
-      ganttScroll.scrollLeft = Math.max(
-        0,
-        todayOffset * zoom.dayWidth - ganttScroll.clientWidth / 2,
-      );
-    }
-
-    ganttScrollTarget = null;
   }
 
   function renderGanttView() {
@@ -1457,6 +1286,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const taskDescription = taskDescriptionInput.value.trim();
 
       if (!taskName) {
+        return;
+      }
+
+      if (
+        taskStartDateInput.value &&
+        taskDeadlineInput.value &&
+        taskStartDateInput.value > taskDeadlineInput.value
+      ) {
+        alert(
+          "Data rozpoczecia nie moze byc pozniejsza niz termin zakonczenia.",
+        );
+        taskStartDateInput.focus();
         return;
       }
 

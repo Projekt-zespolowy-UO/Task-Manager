@@ -1088,6 +1088,34 @@ header {
     width: 100%;
     justify-content: flex-end;
   }
+
+  .gantt-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .gantt-controls,
+  .gantt-legend {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .gantt-controls {
+    padding-bottom: 2px;
+  }
+
+  .gantt-legend {
+    box-sizing: border-box;
+    white-space: nowrap;
+  }
+
+  .gantt-header,
+  .gantt-row,
+  .gantt-calendar-header,
+  .gantt-section-label {
+    grid-template-columns: 220px var(--gantt-timeline-width) 120px;
+    min-width: calc(340px + var(--gantt-timeline-width));
+  }
 }
 
 .task-item {
