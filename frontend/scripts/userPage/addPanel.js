@@ -15,6 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const addCategoryBtn = document.getElementById("add-category-btn");
   const exportCsvBtn = document.getElementById("export-csv-btn");
   const addDashboardBtn = document.getElementById("add-dashboard-btn");
+  const renameDashboardBtn =
+  document.getElementById("rename-dashboard-btn");
   const dashboardSelect = document.getElementById("dashboard-select");
   const dashboardModal = document.getElementById("dashboard-modal");
   const transferOwnerModal = document.getElementById(
@@ -361,7 +363,38 @@ const transferOwnerCancelBtn =
     dashboardNameInput.value = "";
     dashboardNameInput.focus();
   }
+const renameDashboardModal =
+  document.getElementById("rename-dashboard-modal");
 
+const renameDashboardInput =
+  document.getElementById("rename-dashboard-input");
+
+const renameDashboardSaveBtn =
+  document.getElementById("rename-dashboard-save-btn");
+
+const renameDashboardCancelBtn =
+  document.getElementById("rename-dashboard-cancel-btn");
+
+function openRenameDashboardModal() {
+  if (!activeDashboardId) {
+    return;
+  }
+
+  const currentDashboard = dashboards.find(
+    (d) => Number(d.id) === Number(activeDashboardId),
+  );
+
+  renameDashboardInput.value =
+    currentDashboard?.name || "";
+
+  renameDashboardModal.style.display = "flex";
+  overlay.classList.add("active");
+}
+
+function closeRenameDashboardModal() {
+  renameDashboardModal.style.display = "none";
+  renameDashboardInput.value = "";
+}
   function closeDashboardModal() {
     dashboardModal.style.display = "none";
     dashboardNameInput.value = "";
@@ -436,6 +469,7 @@ const transferOwnerCancelBtn =
     closeCategoryModal();
     closeTaskModal();
     closeTaskDetails();
+    closeRenameDashboardModal();
     overlay.classList.remove("active");
   }
 
@@ -1189,6 +1223,12 @@ const transferOwnerCancelBtn =
   if (addDashboardBtn) {
     addDashboardBtn.addEventListener("click", openDashboardModal);
   }
+  if (renameDashboardBtn) {
+  renameDashboardBtn.addEventListener(
+    "click",
+    openRenameDashboardModal
+  );
+}
   if (transferOwnerBtn) {
   transferOwnerBtn.addEventListener(
     "click",
@@ -2082,6 +2122,52 @@ if (transferOwnerCancelBtn) {
     () => {
       transferOwnerModal.style.display = "none";
       overlay.classList.remove("active");
+    },
+  );
+}
+if (renameDashboardCancelBtn) {
+  renameDashboardCancelBtn.addEventListener(
+    "click",
+    closeRenameDashboardModal,
+  );
+}
+
+if (renameDashboardSaveBtn) {
+  renameDashboardSaveBtn.addEventListener(
+    "click",
+    async () => {
+      const name =
+        renameDashboardInput.value.trim();
+
+      if (!name) {
+        return;
+      }
+
+      try {
+        const updatedDashboard =
+          await apiRequest(
+            `/api/dashboards/${activeDashboardId}`,
+            {
+              method: "PUT",
+              body: JSON.stringify({
+                name,
+              }),
+            },
+          );
+
+        dashboards = dashboards.map((d) =>
+          Number(d.id) ===
+          Number(activeDashboardId)
+            ? updatedDashboard
+            : d,
+        );
+
+        closeRenameDashboardModal();
+        renderDashboard();
+      } catch (err) {
+        console.error(err);
+        alert("Failed to rename dashboard.");
+      }
     },
   );
 }

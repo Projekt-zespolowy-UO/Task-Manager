@@ -65,6 +65,9 @@
     </div>
 
     <div class="workspace-actions">
+      <button class="workspace-add-btn" id="rename-dashboard-btn" type="button">
+        ✏️
+      </button>
       <button class="workspace-add-btn" id="transfer-owner-btn" type="button">
         👑
       </button>
@@ -174,6 +177,23 @@
 
         <button id="ownership-save-btn" type="button">
           Transfer
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="rename-dashboard-modal" class="modal">
+    <div class="modal-content">
+      <h3>Rename Dashboard</h3>
+
+      <input type="text" id="rename-dashboard-input" placeholder="New dashboard name" />
+
+      <div class="modal-actions">
+        <button id="rename-dashboard-cancel-btn">
+          Cancel
+        </button>
+
+        <button id="rename-dashboard-save-btn">
+          Save
         </button>
       </div>
     </div>
