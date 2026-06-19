@@ -17,8 +17,7 @@ import com.project.backend.Dto.DashboardInvitationResponseDto;
 import com.project.backend.Dto.DashboardMemberResponseDto;
 import com.project.backend.Dto.DashboardResponseDto;
 import com.project.backend.Dto.InviteUserDto;
-import com.project.backend.Model.Dashboard;
-import com.project.backend.Model.DashboardInvitation;
+import com.project.backend.Dto.TransferOwnershipDto;
 import com.project.backend.Security.CustomUserDetails;
 import com.project.backend.Service.DashboardMembershipService;
 import com.project.backend.Service.DashboardService;
@@ -102,6 +101,15 @@ public class DashboardController {
                 userDetails.user().getId()
         );
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{dashboardId}/transfer-ownership")
+    public ResponseEntity<Void> transferOwnership(
+            @PathVariable Long dashboardId,
+            @Valid @RequestBody TransferOwnershipDto dto,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        dashboardService.transferOwnership(dashboardId, dto.getUserId(), userDetails);
+        return ResponseEntity.ok().build();
     }
 
     // Dashboard Invitations Endpoints
