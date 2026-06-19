@@ -813,12 +813,12 @@ header {
 }
 
 .gantt-bar.is-overdue {
-  background: #b97630;
+  box-shadow: inset 0 0 0 2px #f0a13a;
 }
 
 .gantt-bar.is-complete {
-  background: #4a785f;
-  opacity: 0.72;
+  opacity: 0.58;
+  text-decoration: line-through;
 }
 
 .gantt-task-row.is-overdue .gantt-task-title {
