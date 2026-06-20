@@ -42,10 +42,10 @@ public interface TaskRepository extends JpaRepository<TaskModel, Long> {
             LEFT JOIN FETCH t.status s
             LEFT JOIN FETCH t.dashboard d
             WHERE t.user.id = :userId
-              AND (:categoryId IS NULL OR c.id = :categoryId)
-              AND (:statusId IS NULL OR s.id = :statusId)
+              AND (:#{#categoryId == null} = true OR c.id = :categoryId)
+              AND (:#{#statusId == null} = true OR s.id = :statusId)
               AND (
-                    :search IS NULL
+                    :#{#search == null} = true
                     OR LOWER(t.title) LIKE LOWER(CONCAT('%', :search, '%'))
                     OR (t.description IS NOT NULL AND LOWER(t.description) LIKE LOWER(CONCAT('%', :search, '%')))
                   )
@@ -111,11 +111,11 @@ public interface TaskRepository extends JpaRepository<TaskModel, Long> {
                 FROM DashboardMember dm
                 WHERE dm.user.id = :userId
             )
-            AND (:dashboardId IS NULL OR d.id = :dashboardId)
-            AND (:categoryId IS NULL OR c.id = :categoryId)
-            AND (:statusId IS NULL OR s.id = :statusId)
+            AND (:#{#dashboardId == null} = true OR d.id = :dashboardId)
+            AND (:#{#categoryId == null} = true OR c.id = :categoryId)
+            AND (:#{#statusId == null} = true OR s.id = :statusId)
             AND (
-                :search IS NULL
+                :#{#search == null} = true
                 OR LOWER(t.title) LIKE LOWER(CONCAT('%', :search, '%'))
                 OR (t.description IS NOT NULL AND LOWER(t.description) LIKE LOWER(CONCAT('%', :search, '%')))
             )

@@ -24,6 +24,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.project.backend.Exception.ApiError;
 import com.project.backend.Exception.ApiErrorResponse;
 
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +54,9 @@ public class SecurityConfig {
                                 writeApiError(request, response, ApiError.forbidden("Access denied"))))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(
+                                "/error",
                                 "/user/registration",
                                 "/auth/**",
                                 "/v3/api-docs",

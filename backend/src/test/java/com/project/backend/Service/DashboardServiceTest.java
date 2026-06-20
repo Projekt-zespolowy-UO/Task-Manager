@@ -73,7 +73,6 @@ class DashboardServiceTest {
         DashboardMember targetMember = new DashboardMember(dashboard, currentOwner, DashboardRole.OWNER);
 
         when(authorizationService.getDashboardOrThrow(dashboardId)).thenReturn(dashboard);
-        when(authorizationService.getMemberOrThrow(dashboardId, currentOwner.getId())).thenReturn(targetMember);
 
         assertThatThrownBy(() -> dashboardService.transferOwnership(
                 dashboardId,
