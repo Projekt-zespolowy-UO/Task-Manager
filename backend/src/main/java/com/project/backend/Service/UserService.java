@@ -1,16 +1,15 @@
 package com.project.backend.Service;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.project.backend.Dto.JwtAuthDto;
 import com.project.backend.Dto.UserDto;
 import com.project.backend.Dto.UserSettingsResponseDto;
 import com.project.backend.Dto.UserSettingsUpdateDto;
 import com.project.backend.Dto.UserSettingsUpdateResponseDto;
+import com.project.backend.Exception.ApiError;
 import com.project.backend.Model.UserModel;
 import com.project.backend.Repository.UserRepository;
 import com.project.backend.Security.CustomUserDetails;
@@ -71,7 +70,7 @@ public class UserService {
 
     private void validateUpdateRequest(UserSettingsUpdateDto request) {
         if (request == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
+            throw ApiError.badRequest("Request body is required");
         }
 
         boolean wantsUserNameChange = request.getUserName() != null;
@@ -79,34 +78,30 @@ public class UserService {
         boolean wantsPasswordChange = request.getNewPassword() != null && !request.getNewPassword().isBlank();
 
         if (!wantsUserNameChange && !wantsEmailChange && !wantsPasswordChange) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No settings changes were provided");
+            throw ApiError.badRequest("No settings changes were provided");
         }
 
         if (wantsUserNameChange && request.getUserName().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username cannot be blank");
+            throw ApiError.badRequest("Username cannot be blank");
         }
 
         if (wantsEmailChange) {
             if (request.getEmail().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email cannot be blank");
+                throw ApiError.badRequest("Email cannot be blank");
             }
 
             if (!request.getEmail().contains("@")) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email format is invalid");
+                throw ApiError.badRequest("Email format is invalid");
             }
         }
 
         if (wantsPasswordChange) {
             if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Current password is required to change password");
+                throw ApiError.badRequest("Current password is required to change password");
             }
 
             if (request.getNewPassword().trim().length() < 6) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Password must contain at least 6 characters");
+                throw ApiError.badRequest("Password must contain at least 6 characters");
             }
         }
     }
@@ -126,7 +121,7 @@ public class UserService {
 
         String normalizedEmail = request.getEmail().trim().toLowerCase();
         if (userRepository.existsByEmailAndIdNot(normalizedEmail, user.getId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "User with this email already exists");
+            throw ApiError.conflict("User with this email already exists");
         }
 
         return normalizedEmail;
@@ -134,14 +129,14 @@ public class UserService {
 
     private void validateCurrentPassword(UserModel user, String currentPassword) {
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current password is incorrect");
+            throw ApiError.unauthorized("Current password is incorrect");
         }
     }
 
     
     private UserModel requireAuthenticatedUser(CustomUserDetails userDetails) {
         if (userDetails == null || userDetails.user() == null || userDetails.user().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user is required");
+            throw ApiError.unauthorized("Authenticated user is required");
         }
 
         return userDetails.user();
@@ -149,11 +144,11 @@ public class UserService {
 
     private UserModel requirePersistedAuthenticatedUser(CustomUserDetails userDetails) {
         if (userDetails == null || userDetails.user() == null || userDetails.user().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user is required");
+            throw ApiError.unauthorized("Authenticated user is required");
         }
 
         return userRepository.findById(userDetails.user().getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+                .orElseThrow(() -> ApiError.unauthorized("User not found"));
     }
 
     

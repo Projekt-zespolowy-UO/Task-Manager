@@ -16,4 +16,5 @@ public interface DashboardRepository extends JpaRepository<Dashboard, Long> {
     List<Dashboard> findByUser_IdOrderByIdAsc(Long userId);
 
     Optional<Dashboard> findByIdAndUser_Id(Long id, Long userId);
+    boolean existsByUser_IdAndNameIgnoreCase(Long userId, String name);
 }

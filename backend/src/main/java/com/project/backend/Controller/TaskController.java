@@ -1,16 +1,15 @@
 package com.project.backend.Controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,13 +18,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
-import com.project.backend.Dto.PagedResponseDto;
 import com.project.backend.Dto.TaskCategoryUpdateDto;
 import com.project.backend.Dto.TaskCreateDto;
-import com.project.backend.Dto.TaskCustomStatusUpdateDto;
-import com.project.backend.Dto.TaskFilterDto;
 import com.project.backend.Dto.TaskPatchDto;
 import com.project.backend.Dto.TaskResponseDto;
 import com.project.backend.Dto.TaskStatusUpdateDto;
@@ -40,7 +35,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/tasks")
+@RequestMapping("/api/tasks")
 @RequiredArgsConstructor
 @Tag(name = "Tasks", description = "CRUD operations for user tasks")
 @SecurityRequirement(name = "bearerAuth")
@@ -49,61 +44,44 @@ public class TaskController {
     private final TaskService taskService;
 
     @GetMapping
-    @Operation(summary = "List tasks for the authenticated user. "
-            + "Supports filtering (status, priority, categoryId, dashboardId, deadlineFrom, deadlineTo, search), "
-            + "sorting (sort=field,asc|desc; allowed fields: id, title, status, priority, deadline) "
-            + "and optional pagination (page, size — when supplied the response is a paged envelope).")
-    public ResponseEntity<?> getTasks(
-            @ModelAttribute TaskFilterDto filter,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) List<String> sort,
+    @Operation(summary = "List all tasks for the authenticated user")
+    public List<TaskResponseDto> getTasks(
+            @RequestParam Long dashboardId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-
-        Sort parsedSort = parseSort(sort);
-
-        if (page != null || size != null) {
-            int effectivePage = page != null ? page : 0;
-            int effectiveSize = size != null ? size : 20;
-            if (effectivePage < 0) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page must be >= 0");
-            }
-            if (effectiveSize <= 0 || effectiveSize > 200) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "size must be between 1 and 200");
-            }
-            Pageable pageable = PageRequest.of(effectivePage, effectiveSize, parsedSort);
-            return ResponseEntity.ok(
-                    PagedResponseDto.from(taskService.getTasksPage(filter, pageable, userDetails)));
-        }
-
-        List<TaskResponseDto> tasks = taskService.getTasks(filter, parsedSort, userDetails);
-        return ResponseEntity.ok(tasks);
+        return taskService.getTasks(dashboardId, userDetails);
     }
 
-    private Sort parseSort(List<String> sortParams) {
-        if (sortParams == null || sortParams.isEmpty()) {
-            return Sort.unsorted();
+    @GetMapping("/export.csv")
+    @Operation(summary = "Export tasks available to the authenticated user as CSV")
+    public ResponseEntity<byte[]> exportTasksCsv(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) Long dashboardId,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long statusId,
+            @RequestParam(required = false) String search) {
+
+        // Debug: check if userDetails is null
+        if (userDetails == null) {
+            System.out.println("🔴 DEBUG: userDetails is NULL in exportTasksCsv!");
+            throw new RuntimeException("User not authenticated");
         }
-        List<Sort.Order> orders = sortParams.stream()
-                .filter(s -> s != null && !s.isBlank())
-                .map(String::trim)
-                .map(entry -> {
-                    String[] parts = entry.split(",");
-                    String property = parts[0].trim();
-                    Sort.Direction direction = Sort.Direction.ASC;
-                    if (parts.length > 1) {
-                        try {
-                            direction = Sort.Direction.fromString(parts[1].trim());
-                        } catch (IllegalArgumentException ex) {
-                            throw new ResponseStatusException(
-                                    HttpStatus.BAD_REQUEST,
-                                    "Sort direction must be 'asc' or 'desc'");
-                        }
-                    }
-                    return new Sort.Order(direction, property);
-                })
-                .toList();
-        return orders.isEmpty() ? Sort.unsorted() : Sort.by(orders);
+
+        System.out.println("🟢 DEBUG: exportTasksCsv called for user: " + userDetails.getUsername());
+
+        String filename = "tasks-" + LocalDate.now() + ".csv";
+        byte[] csvData = taskService.getTasksCsvAsBytes(
+                userDetails,
+                dashboardId,
+                categoryId,
+                statusId,
+                search);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(filename).build().toString())
+                .body(csvData);
     }
 
     @PostMapping
@@ -148,15 +126,6 @@ public class TaskController {
             @Valid @RequestBody TaskCategoryUpdateDto dto,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return taskService.changeCategory(id, dto, userDetails);
-    }
-
-    @PatchMapping("/{id}/custom-status")
-    @Operation(summary = "Assign a custom status to a task, or clear it by passing null")
-    public TaskResponseDto changeCustomStatus(
-            @PathVariable Long id,
-            @Valid @RequestBody TaskCustomStatusUpdateDto dto,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return taskService.changeCustomStatus(id, dto, userDetails);
     }
 
     @DeleteMapping("/{id}")

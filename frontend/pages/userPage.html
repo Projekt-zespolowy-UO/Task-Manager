@@ -1,149 +1,209 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="../favicon.png" />
-    <link rel="stylesheet" href="../styles/userPage.css" />
-    <title>Task manager</title>
-  </head>
 
-  <body>
-    <header>
-      <div class="navbar">
-        <div class="nav-left">
-          <a href="">
-            <img
-              class="navbar-logo-shape"
-              src="../images/logo.png"
-              alt="logo"
-            />
-          </a>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="../favicon.png" />
+  <link rel="stylesheet" href="../styles/userPage.css" />
+  <title>Task manager</title>
+</head>
 
-          <img
-            src="../images/profile-img.png"
-            alt="profile picture"
-            class="profile-picture"
-          />
-
-          <h1 id="user-name">Loading...</h1>
-        </div>
-
-        <div class="nav-center">
-          <div class="search-input-div">
-            <input
-              class="search-input"
-              type="search"
-              placeholder="Szukaj zadan..."
-            />
-          </div>
-        </div>
-
-        <div class="nav-right">
-          <div class="menu-toggle" id="menu-toggle">&#9776;</div>
-        </div>
-      </div>
-    </header>
-
-    <div class="mobile-menu" id="mobile-menu">
-      <div id="menu-view">
-        <a class="navbar-link mobile-menu-disabled" href="#">Profile</a>
-        <a class="navbar-link" href="./userPage.html">Dashboard</a>
-        <a href="#" class="navbar-link" id="notifications-btn">
-          Notifications
+<body>
+  <header>
+    <div class="navbar">
+      <div class="nav-left">
+        <a href="">
+          <img class="navbar-logo-shape" src="../images/logo.png" alt="logo" />
         </a>
-        <a class="navbar-link mobile-menu-disabled" href="#">Settings</a>
 
-        <button class="navbar-link mobile-menu-button logout-btn" type="button">
-          Log out
-        </button>
+        <img src="../images/profile-img.png" alt="profile picture" class="profile-picture" />
+
+        <h1 id="user-name">Loading...</h1>
       </div>
 
-      <div id="notifications-view">
-        <div class="notifications-header">
-          <button id="back-to-menu" type="button">Back</button>
-          <h3>Notifications</h3>
+      <div class="nav-center">
+        <div class="search-input-div">
+          <input class="search-input" type="search" placeholder="Szukaj zadan..." />
         </div>
+      </div>
 
-        <div class="notifications-list">
-          <div class="notification-item">
-            Task "Frontend UI" deadline tomorrow
-          </div>
-          <div class="notification-item">New comment added</div>
-          <div class="notification-item">Task completed successfully</div>
-        </div>
+      <div class="nav-right">
+        <div class="menu-toggle" id="menu-toggle">&#9776;</div>
       </div>
     </div>
+  </header>
 
-    <section class="category-bar">
-      <div class="category-tabs" id="category-tabs"></div>
+  <div class="mobile-menu" id="mobile-menu">
+    <div id="menu-view">
+      <a class="navbar-link mobile-menu-disabled" href="#">Profile</a>
+      <a class="navbar-link" href="./userPage.html">Dashboard</a>
+      <a href="#" class="navbar-link" id="notifications-btn">
+        Notifications
+      </a>
+      <a class="navbar-link mobile-menu-disabled" href="#">Settings</a>
+
+      <button class="navbar-link mobile-menu-button logout-btn" type="button">
+        Log out
+      </button>
+    </div>
+
+    <div id="notifications-view">
+      <div class="notifications-header">
+        <button id="back-to-menu" type="button">Back</button>
+        <h3>Notifications</h3>
+      </div>
+
+      <div class="notifications-list" id="notifications-list"></div>
+    </div>
+  </div>
+
+  <section class="workspace-bar">
+    <div class="workspace-heading">
+      <span class="workspace-label">Workspace</span>
+      <select id="dashboard-select" aria-label="Wybierz workspace"></select>
+    </div>
+
+    <div class="workspace-actions">
+      <button class="workspace-add-btn" id="rename-dashboard-btn" type="button">
+        ✏️
+      </button>
+      <button class="workspace-add-btn" id="transfer-owner-btn" type="button">
+        👑
+      </button>
+
+      <button class="workspace-add-btn" id="add-dashboard-btn" type="button" aria-label="Dodaj workspace"
+        title="Dodaj workspace">
+        +
+      </button>
+    </div>
+  </section>
+
+  <section class="category-bar">
+    <div class="category-tabs" id="category-tabs"></div>
+    <div class="category-actions">
+      <label class="view-selector">
+        <span>Widok</span>
+        <select id="view-select">
+          <option value="board">Kolumny</option>
+          <option value="gantt">Diagram Ganta</option>
+        </select>
+      </label>
+      <button class="export-csv-btn" id="export-csv-btn" type="button">
+        Export CSV
+      </button>
       <button class="add-panel-btn" id="add-category-btn" type="button">
         Dodaj kategorie
       </button>
-    </section>
+    </div>
+  </section>
 
-    <div class="task-container"></div>
+  <div class="task-container"></div>
 
-    <div id="panel-modal" class="modal">
-      <div class="modal-content">
-        <h3>Nazwij nowa kategorie</h3>
-        <input type="text" id="panel-name-input" placeholder="Wpisz nazwe..." />
+  <div id="dashboard-modal" class="modal">
+    <div class="modal-content">
+      <h3>Nowy workspace</h3>
+      <input type="text" id="dashboard-name-input" placeholder="Nazwa workspace..." maxlength="255" />
 
-        <div class="modal-actions">
-          <button id="cancel-btn" type="button">Anuluj</button>
-          <button id="save-btn" type="button">Dodaj</button>
-        </div>
+      <div class="modal-actions">
+        <button id="dashboard-cancel-btn" type="button">Anuluj</button>
+        <button id="dashboard-save-btn" type="button">Utworz</button>
       </div>
     </div>
+  </div>
 
-    <div id="task-modal" class="modal">
-      <div class="modal-content">
-        <h3 id="task-modal-title">Dodaj nowe zadanie</h3>
+  <div id="panel-modal" class="modal">
+    <div class="modal-content">
+      <h3>Nazwij nowa kategorie</h3>
+      <input type="text" id="panel-name-input" placeholder="Wpisz nazwe..." />
 
-        <input type="text" id="task-name-input" placeholder="Wpisz nazwe..." />
-
-        <textarea
-          id="task-description-input"
-          placeholder="Wpisz opis zadania..."
-          rows="5"
-        ></textarea>
-
-        <select id="task-priority-input">
-          <option value="LOW">Low</option>
-          <option value="MEDIUM" selected>Medium</option>
-          <option value="HIGH">High</option>
-        </select>
-
-        <input type="date" id="task-deadline-input" />
-
-        <select id="task-category-input"></select>
-
-        <div class="modal-actions">
-          <button id="task-cancel-btn" type="button">Anuluj</button>
-          <button id="task-save-btn" type="button">Dodaj</button>
-        </div>
+      <div class="modal-actions">
+        <button id="cancel-btn" type="button">Anuluj</button>
+        <button id="save-btn" type="button">Dodaj</button>
       </div>
     </div>
+  </div>
 
-    <div id="task-details-modal" class="modal">
-      <div class="modal-content">
-        <h3 id="task-details-title">Szczegoly zadania</h3>
-        <div
-          id="task-details-description"
-          class="task-details-description"
-        ></div>
+  <div id="task-modal" class="modal">
+    <div class="modal-content">
+      <h3 id="task-modal-title">Dodaj nowe zadanie</h3>
 
-        <div class="modal-actions">
-          <button id="task-details-close-btn" type="button">Zamknij</button>
-        </div>
+      <input type="text" id="task-name-input" placeholder="Wpisz nazwe..." />
+
+      <textarea id="task-description-input" placeholder="Wpisz opis zadania..." rows="5"></textarea>
+
+      <select id="task-priority-input">
+        <option value="LOW">Low</option>
+        <option value="MEDIUM" selected>Medium</option>
+        <option value="HIGH">High</option>
+      </select>
+
+      <label for="task-start-date-input">Data rozpoczecia</label>
+      <input type="date" id="task-start-date-input" />
+
+      <label for="task-deadline-input">Termin zakonczenia</label>
+      <input type="date" id="task-deadline-input" />
+
+      <label for="task-category-input">Kategoria (opcjonalnie)</label>
+      <select id="task-category-input"></select>
+
+      <div class="modal-actions">
+        <button id="task-cancel-btn" type="button">Anuluj</button>
+        <button id="task-save-btn" type="button">Dodaj</button>
       </div>
     </div>
+  </div>
 
-    <div class="overlay" id="overlay"></div>
+  <div id="task-details-modal" class="modal">
+    <div class="modal-content">
+      <h3 id="task-details-title">Szczegoly zadania</h3>
+      <div id="task-details-description" class="task-details-description"></div>
 
-    <script src="../scripts/api/apiClient.js"></script>
-    <script src="../scripts/pages/navigation.js"></script>
-    <script src="../scripts/userPage/userSession.js"></script>
-    <script src="../scripts/userPage/addPanel.js"></script>
-  </body>
+      <div class="modal-actions">
+        <button id="task-details-close-btn" type="button">Zamknij</button>
+      </div>
+    </div>
+  </div>
+  <div id="transfer-ownership-modal" class="modal">
+    <div class="modal-content">
+      <h3>Transfer Ownership</h3>
+
+      <select id="ownership-member-select"></select>
+
+      <div class="modal-actions">
+        <button id="ownership-cancel-btn" type="button">
+          Cancel
+        </button>
+
+        <button id="ownership-save-btn" type="button">
+          Transfer
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="rename-dashboard-modal" class="modal">
+    <div class="modal-content">
+      <h3>Rename Dashboard</h3>
+
+      <input type="text" id="rename-dashboard-input" placeholder="New dashboard name" />
+
+      <div class="modal-actions">
+        <button id="rename-dashboard-cancel-btn">
+          Cancel
+        </button>
+
+        <button id="rename-dashboard-save-btn">
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="overlay"></div>
+
+  <script src="../scripts/api/apiClient.js"></script>
+  <script src="../scripts/pages/navigation.js"></script>
+  <script src="../scripts/userPage/userSession.js"></script>
+  <script src="../scripts/userPage/addPanel.js"></script>
+</body>
+
 </html>

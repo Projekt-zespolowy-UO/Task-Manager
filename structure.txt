@@ -1,0 +1,105 @@
+Folder PATH listing for volume Äèñê
+Volume serial number is 000001EF AC3C:500A
+I:\PROJEKT_ZESPOLOWY\TASK-MANAGER\BACKEND\SRC\MAIN\JAVA\COM\PROJECT\BACKEND
+¦   BackendApplication.java
+¦   
++---Controller
+¦       AuthController.java
+¦       CategoryController.java
+¦       DashboardController.java
+¦       RegistrationController.java
+¦       ReminderTaskController.java
+¦       TaskCategoryController.java
+¦       TaskController.java
+¦       TaskStatusController.java
+¦       UserController.java
+¦       
++---Dto
+¦       CategoryCreateDto.java
+¦       CategoryResponseDto.java
+¦       CategoryUpdateDto.java
+¦       DashboardCreateDto.java
+¦       DashboardInvitationResponseDto.java
+¦       DashboardMemberResponseDto.java
+¦       DashboardResponseDto.java
+¦       InviteUserDto.java
+¦       JwtAuthDto.java
+¦       PasswordResetConfirmDto.java
+¦       PasswordResetRequestDto.java
+¦       ReminderTaskDto.java
+¦       TaskCategoryDto.java
+¦       TaskCategoryUpdateDto.java
+¦       TaskCreateDto.java
+¦       TaskPatchDto.java
+¦       TaskResponseDto.java
+¦       TaskStatusCreateDto.java
+¦       TaskStatusRenameDto.java
+¦       TaskStatusResponseDto.java
+¦       TaskStatusUpdateDto.java
+¦       TaskUpdateDto.java
+¦       UserDto.java
+¦       UserSettingsResponseDto.java
+¦       UserSettingsUpdateDto.java
+¦       UserSettingsUpdateResponseDto.java
+¦       
++---Enum
+¦       DashboardRole.java
+¦       InvitationStatus.java
+¦       Priority.java
+¦       
++---Exception
+¦       ApiError.java
+¦       ApiErrorResponse.java
+¦       GlobalExceptionHandler.java
+¦       
++---Mapper
+¦       TaskCategoryMapper.java
+¦       
++---Model
+¦       CategoryModel.java
+¦       Dashboard.java
+¦       DashboardInvitation.java
+¦       DashboardMember.java
+¦       PasswordResetCodeModel.java
+¦       ReminderTask.java
+¦       TaskCategoryModel.java
+¦       TaskModel.java
+¦       TaskStatusModel.java
+¦       UserModel.java
+¦       
++---Repository
+¦       CategoryRepository.java
+¦       DashboardInvitationRepository.java
+¦       DashboardMemberRepository.java
+¦       DashboardRepository.java
+¦       PasswordResetCodeRepository.java
+¦       ReminderTaskRepository.java
+¦       TaskCategoryRepository.java
+¦       TaskRepository.java
+¦       TaskStatusRepository.java
+¦       UserRepository.java
+¦       
++---Security
+¦       CustomUserDetails.java
+¦       CustomUserServiceImpl.java
+¦       JwtFilter.java
+¦       JwtService.java
+¦       OpenApiConfig.java
+¦       SecurityConfig.java
+¦       
+L---Service
+        AuthService.java
+        CategoryService.java
+        DashboardAuthorizationService.java
+        DashboardMembershipService.java
+        DashboardService.java
+        MailService.java
+        PasswordResetCodeService.java
+        RegistrationService.java
+        ReminderTaskService.java
+        TaskCategoryService.java
+        TaskNotificationService.java
+        TaskService.java
+        TaskStatusService.java
+        UserService.java
+        

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.backend.Dto.CategoryCreateDto;
@@ -26,7 +27,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/categories")
+@RequestMapping("/api/categories")
 @RequiredArgsConstructor
 @Tag(name = "Categories", description = "CRUD operations for user categories")
 @SecurityRequirement(name = "bearerAuth")
@@ -35,10 +36,11 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @GetMapping
-    @Operation(summary = "List all categories for the authenticated user")
+    @Operation(summary = "List categories for a dashboard")
     public List<CategoryResponseDto> getCategories(
+            @RequestParam Long dashboardId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return categoryService.getCategories(userDetails);
+        return categoryService.getCategories(dashboardId, userDetails);
     }
 
     @PostMapping

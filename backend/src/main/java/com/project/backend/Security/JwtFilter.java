@@ -6,6 +6,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -34,7 +35,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (token != null) {
             jwtService.getEmailFromValidToken(token)
-                    .ifPresent(this::setAuthentication);
+                    .ifPresent(this::setAuthenticationIfUserExists);
         }
 
         filterChain.doFilter(request, response);
@@ -49,15 +50,19 @@ public class JwtFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private void setAuthentication(String email) {
-        var userDetails = customUserServiceImpl.loadUserByUsername(email);
+    private void setAuthenticationIfUserExists(String email) {
+        try {
+            var userDetails = customUserServiceImpl.loadUserByUsername(email);
 
-        var authToken = new UsernamePasswordAuthenticationToken(
-                userDetails,
-                null,
-                userDetails.getAuthorities());
+            var authToken = new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    null,
+                    userDetails.getAuthorities());
 
-        SecurityContextHolder.getContext().setAuthentication(authToken);
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+        } catch (UsernameNotFoundException ex) {
+            SecurityContextHolder.clearContext();
+        }
     }
 
     @Override

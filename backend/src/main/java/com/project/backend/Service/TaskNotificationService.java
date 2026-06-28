@@ -10,7 +10,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.project.backend.Enum.Status;
 import com.project.backend.Model.TaskModel;
 import com.project.backend.Model.UserModel;
 import com.project.backend.Repository.TaskRepository;
@@ -34,7 +33,7 @@ public class TaskNotificationService {
     public void sendDueTaskNotifications() {
         LocalDate today = LocalDate.now();
         LocalDate windowEnd = today.plusDays(Math.max(dueWindowDays, 0));
-        List<TaskModel> tasks = taskRepository.findTasksForDueNotifications(today, windowEnd, Status.DONE);
+        List<TaskModel> tasks = taskRepository.findTasksForDueNotifications(today, windowEnd, "DONE");
 
         for (TaskModel task : tasks) {
             sendNotification(task, today);

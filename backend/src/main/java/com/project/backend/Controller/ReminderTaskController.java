@@ -1,7 +1,6 @@
 package com.project.backend.Controller;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -32,8 +31,7 @@ public class ReminderTaskController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ReminderTask> getReminderById(@PathVariable Long id) {
-        Optional<ReminderTask> reminderTask = reminderTaskService.getReminderTaskById(id);
-        return reminderTask.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return ResponseEntity.ok(reminderTaskService.getReminderTaskById(id));
     }
 
     @PostMapping
@@ -44,11 +42,7 @@ public class ReminderTaskController {
     @PutMapping("/{id}")
     public ResponseEntity<ReminderTask> updateReminder(@PathVariable Long id, @RequestBody ReminderTaskDto reminderTaskDto) {
         ReminderTask updatedTask = reminderTaskService.updateReminderTask(id, reminderTaskDto);
-        if (updatedTask != null) {
-            return ResponseEntity.ok(updatedTask);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(updatedTask);
     }
 
     @DeleteMapping("/{id}")

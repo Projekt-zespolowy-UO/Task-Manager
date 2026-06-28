@@ -1,36 +1,37 @@
 package com.project.backend.Service;
 
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
 
-import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.project.backend.Dto.TaskCategoryUpdateDto;
 import com.project.backend.Dto.TaskCreateDto;
-import com.project.backend.Dto.TaskCustomStatusUpdateDto;
-import com.project.backend.Dto.TaskFilterDto;
 import com.project.backend.Dto.TaskPatchDto;
 import com.project.backend.Dto.TaskResponseDto;
 import com.project.backend.Dto.TaskStatusUpdateDto;
 import com.project.backend.Dto.TaskUpdateDto;
 import com.project.backend.Enum.Priority;
-import com.project.backend.Enum.Status;
+import com.project.backend.Exception.ApiError;
 import com.project.backend.Model.CategoryModel;
-import com.project.backend.Model.CustomStatusModel;
 import com.project.backend.Model.Dashboard;
 import com.project.backend.Model.TaskModel;
+import com.project.backend.Model.TaskStatusModel;
 import com.project.backend.Model.UserModel;
 import com.project.backend.Repository.CategoryRepository;
-import com.project.backend.Repository.CustomStatusRepository;
 import com.project.backend.Repository.DashboardRepository;
 import com.project.backend.Repository.TaskRepository;
-import com.project.backend.Repository.TaskSpecifications;
+import com.project.backend.Repository.TaskStatusRepository;
 import com.project.backend.Security.CustomUserDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -39,57 +40,126 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TaskService {
 
+    private static final int CSV_EXPORT_PAGE_SIZE = 500;
+    private static final byte[] UTF8_BOM = new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
     private final DashboardRepository dashboardRepository;
-    private final CustomStatusRepository customStatusRepository;
-
-    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
-            "id", "title", "status", "priority", "deadline");
+    private final TaskStatusRepository taskStatusRepository;
+    private final DashboardAuthorizationService dashboardAuthorizationService;
 
     @Transactional(readOnly = true)
-    public List<TaskResponseDto> getTasks(TaskFilterDto filter, Sort sort, CustomUserDetails userDetails) {
+    public List<TaskResponseDto> getTasks(Long dashboardId, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
+        dashboardAuthorizationService.validateDashboardAccess(user.getId(), dashboardId);
 
-        Sort effectiveSort = sanitizeSort(sort);
-        return taskRepository.findAll(
-                        TaskSpecifications.forUserAndFilter(user.getId(), filter),
-                        effectiveSort)
+        return taskRepository.findByDashboard_IdOrderByIdAsc(dashboardId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public Page<TaskResponseDto> getTasksPage(TaskFilterDto filter, Pageable pageable, CustomUserDetails userDetails) {
-        UserModel user = requireAuthenticatedUser(userDetails);
+    public byte[] getTasksCsvAsBytes(
+            CustomUserDetails userDetails,
+            Long dashboardId,
+            Long categoryId,
+            Long statusId,
+            String search) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        try {
+            writeTasksCsv(byteArrayOutputStream, userDetails, dashboardId, categoryId, statusId, search);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to generate CSV", e);
+        }
+        return byteArrayOutputStream.toByteArray();
+    }
 
-        Pageable effectivePageable = sanitizePageable(pageable);
-        return taskRepository
-                .findAll(TaskSpecifications.forUserAndFilter(user.getId(), filter), effectivePageable)
-                .map(this::toResponse);
+    @Transactional(readOnly = true)
+    private void writeTasksCsv(
+            OutputStream outputStream,
+            CustomUserDetails userDetails,
+            Long dashboardId,
+            Long categoryId,
+            Long statusId,
+            String search) throws IOException {
+        UserModel user = requireAuthenticatedUser(userDetails);
+        if (dashboardId != null) {
+            dashboardAuthorizationService.validateDashboardAccess(user.getId(), dashboardId);
+        }
+        String normalizedSearch = normalizeSearch(search);
+
+        outputStream.write(UTF8_BOM);
+
+        try (BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(outputStream, StandardCharsets.UTF_8))) {
+            writeCsvRow(writer, List.of(
+                    "ID",
+                    "Title",
+                    "Description",
+                    "Status",
+                    "Priority",
+                    "Start Date",
+                    "Deadline",
+                    "Category ID",
+                    "Category Name",
+                    "Dashboard ID"));
+
+            int pageNumber = 0;
+            Slice<TaskModel> taskPage;
+
+            do {
+                Pageable pageable = PageRequest.of(pageNumber, CSV_EXPORT_PAGE_SIZE);
+                taskPage = taskRepository.findAccessibleTasksForCsvExport(
+                        user.getId(),
+                        dashboardId,
+                        categoryId,
+                        statusId,
+                        normalizedSearch,
+                        pageable);
+
+                for (TaskModel task : taskPage.getContent()) {
+                    writeCsvRow(writer, toCsvRow(task));
+                }
+
+                writer.flush();
+                pageNumber += 1;
+            } while (taskPage.hasNext());
+        }
     }
 
     @Transactional
     public TaskResponseDto createTask(TaskCreateDto dto, CustomUserDetails userDetails) {
         UserModel user = requireAuthenticatedUser(userDetails);
-        CategoryModel category = requireOwnedCategory(dto.getCategoryId(), user.getId());
         Dashboard dashboard = dto.getDashboardId() != null
-                ? requireOwnedDashboard(dto.getDashboardId(), user.getId())
+                ? requireAccessibleDashboard(dto.getDashboardId(), user.getId())
                 : null;
 
+        if (dashboard == null) {
+            throw ApiError.badRequest("Dashboard is required for task status management");
+        }
+
+        CategoryModel category = requireCategoryForDashboard(
+                dto.getCategoryId(),
+                dashboard.getId(),
+                user.getId());
+        TaskStatusModel status = requireStatusForDashboard(
+                dto.getStatusId(),
+                dashboard.getId(),
+                user.getId());
+
         TaskModel task = new TaskModel();
+        validateSchedule(dto.getStartDate(), dto.getDeadline());
         task.setTitle(normalizeRequiredTitle(dto.getTitle()));
         task.setDescription(dto.getDescription());
-        task.setStatus(dto.getStatus() != null ? dto.getStatus() : Status.TODO);
+        task.setStatus(status);
         task.setPriority(dto.getPriority() != null ? dto.getPriority() : Priority.MEDIUM);
+        task.setStartDate(dto.getStartDate());
         task.setDeadline(dto.getDeadline());
         task.setCategory(category);
         task.setUser(user);
         task.setDashboard(dashboard);
-        if (dto.getCustomStatusId() != null) {
-            task.setCustomStatus(requireOwnedCustomStatus(dto.getCustomStatusId(), user.getId()));
-        }
 
         return toResponse(taskRepository.save(task));
     }
@@ -99,15 +169,19 @@ public class TaskService {
         UserModel user = requireAuthenticatedUser(userDetails);
         TaskModel task = requireOwnedTask(taskId, user.getId());
 
+        Dashboard dashboard = task.getDashboard();
+        if (dashboard == null) {
+            throw ApiError.badRequest("Task does not belong to a dashboard");
+        }
+
+        validateSchedule(dto.getStartDate(), dto.getDeadline());
         task.setTitle(normalizeRequiredTitle(dto.getTitle()));
         task.setDescription(dto.getDescription());
-        task.setStatus(dto.getStatus());
+        task.setStatus(requireStatusForDashboard(dto.getStatusId(), dashboard.getId(), user.getId()));
         task.setPriority(dto.getPriority());
+        task.setStartDate(dto.getStartDate());
         task.setDeadline(dto.getDeadline());
-        task.setCategory(requireOwnedCategory(dto.getCategoryId(), user.getId()));
-        task.setCustomStatus(dto.getCustomStatusId() != null
-                ? requireOwnedCustomStatus(dto.getCustomStatusId(), user.getId())
-                : null);
+        task.setCategory(requireCategoryForDashboard(dto.getCategoryId(), dashboard.getId(), user.getId()));
 
         return toResponse(taskRepository.save(task));
     }
@@ -123,34 +197,31 @@ public class TaskService {
         if (dto.getDescription() != null) {
             task.setDescription(dto.getDescription());
         }
-        if (dto.getStatus() != null) {
-            task.setStatus(dto.getStatus());
+        if (dto.getStatusId() != null) {
+            Dashboard dashboard = task.getDashboard();
+            if (dashboard == null) {
+                throw ApiError.badRequest("Task does not belong to a dashboard");
+            }
+            task.setStatus(requireStatusForDashboard(dto.getStatusId(), dashboard.getId(), user.getId()));
         }
         if (dto.getPriority() != null) {
             task.setPriority(dto.getPriority());
+        }
+        if (dto.getStartDate() != null) {
+            task.setStartDate(dto.getStartDate());
         }
         if (dto.getDeadline() != null) {
             task.setDeadline(dto.getDeadline());
         }
         if (dto.getCategoryId() != null) {
-            task.setCategory(requireOwnedCategory(dto.getCategoryId(), user.getId()));
+            Dashboard dashboard = requireTaskDashboard(task);
+            task.setCategory(requireCategoryForDashboard(
+                    dto.getCategoryId(),
+                    dashboard.getId(),
+                    user.getId()));
         }
-        if (dto.getCustomStatusId() != null) {
-            task.setCustomStatus(requireOwnedCustomStatus(dto.getCustomStatusId(), user.getId()));
-        }
 
-        return toResponse(taskRepository.save(task));
-    }
-
-    @Transactional
-    public TaskResponseDto changeCustomStatus(Long taskId, TaskCustomStatusUpdateDto dto, CustomUserDetails userDetails) {
-        UserModel user = requireAuthenticatedUser(userDetails);
-        TaskModel task = requireOwnedTask(taskId, user.getId());
-
-        task.setCustomStatus(dto.getCustomStatusId() != null
-                ? requireOwnedCustomStatus(dto.getCustomStatusId(), user.getId())
-                : null);
-
+        validateSchedule(task.getStartDate(), task.getDeadline());
         return toResponse(taskRepository.save(task));
     }
 
@@ -159,7 +230,12 @@ public class TaskService {
         UserModel user = requireAuthenticatedUser(userDetails);
         TaskModel task = requireOwnedTask(taskId, user.getId());
 
-        task.setStatus(dto.getStatus());
+        Dashboard dashboard = task.getDashboard();
+        if (dashboard == null) {
+            throw ApiError.badRequest("Task does not belong to a dashboard");
+        }
+
+        task.setStatus(requireStatusForDashboard(dto.getStatusId(), dashboard.getId(), user.getId()));
 
         return toResponse(taskRepository.save(task));
     }
@@ -169,7 +245,11 @@ public class TaskService {
         UserModel user = requireAuthenticatedUser(userDetails);
         TaskModel task = requireOwnedTask(taskId, user.getId());
 
-        task.setCategory(requireOwnedCategory(dto.getCategoryId(), user.getId()));
+        Dashboard dashboard = requireTaskDashboard(task);
+        task.setCategory(requireCategoryForDashboard(
+                dto.getCategoryId(),
+                dashboard.getId(),
+                user.getId()));
 
         return toResponse(taskRepository.save(task));
     }
@@ -183,66 +263,121 @@ public class TaskService {
 
     private UserModel requireAuthenticatedUser(CustomUserDetails userDetails) {
         if (userDetails == null || userDetails.user() == null || userDetails.user().getId() == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user is required");
+            throw ApiError.unauthorized("Authenticated user is required");
         }
 
         return userDetails.user();
     }
 
     private TaskModel requireOwnedTask(Long taskId, Long userId) {
-        return taskRepository.findByIdAndUser_Id(taskId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+        TaskModel task = taskRepository.findById(taskId)
+                .orElseThrow(() -> ApiError.notFound("Task not found"));
+        
+        // Verify user is a member of the task's dashboard
+        if (task.getDashboard() == null) {
+            throw ApiError.badRequest("Task does not belong to a dashboard");
+        }
+        
+        dashboardAuthorizationService.validateDashboardAccess(userId, task.getDashboard().getId());
+        return task;
     }
 
-    private CategoryModel requireOwnedCategory(Long categoryId, Long userId) {
-        return categoryRepository.findByIdAndUser_Id(categoryId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+    private Dashboard requireAccessibleDashboard(Long dashboardId, Long userId) {
+        Dashboard dashboard = dashboardAuthorizationService.getDashboardOrThrow(dashboardId);
+        dashboardAuthorizationService.validateDashboardAccess(userId, dashboardId);
+        return dashboard;
     }
 
-    private Dashboard requireOwnedDashboard(Long dashboardId, Long userId) {
-        return dashboardRepository.findByIdAndUser_Id(dashboardId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dashboard not found"));
+    private CategoryModel requireCategoryForDashboard(Long categoryId, Long dashboardId, Long userId) {
+        dashboardAuthorizationService.validateDashboardAccess(userId, dashboardId);
+        return categoryRepository.findByIdAndDashboard_Id(categoryId, dashboardId)
+                .orElseThrow(() -> ApiError.notFound("Category not found"));
     }
 
-    private CustomStatusModel requireOwnedCustomStatus(Long customStatusId, Long userId) {
-        return customStatusRepository.findByIdAndUser_Id(customStatusId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Custom status not found"));
-    }
+    private TaskStatusModel requireStatusForDashboard(Long statusId, Long dashboardId, Long userId) {
+        dashboardAuthorizationService.validateDashboardAccess(userId, dashboardId);
+        TaskStatusModel status = taskStatusRepository.findById(statusId)
+                .orElseThrow(() -> ApiError.notFound("Status not found"));
 
-    private Sort sanitizeSort(Sort sort) {
-        if (sort == null || sort.isUnsorted()) {
-            return Sort.by(Sort.Direction.ASC, "id");
+        if (status.getCategory() == null
+                || status.getCategory().getDashboard() == null
+                || !status.getCategory().getDashboard().getId().equals(dashboardId)) {
+            throw ApiError.notFound("Status not found");
         }
 
-        List<Sort.Order> safeOrders = sort.stream()
-                .filter(order -> ALLOWED_SORT_FIELDS.contains(order.getProperty()))
-                .toList();
-
-        if (safeOrders.isEmpty()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Sort must reference one of: " + ALLOWED_SORT_FIELDS);
-        }
-        return Sort.by(safeOrders);
+        return status;
     }
 
-    private Pageable sanitizePageable(Pageable pageable) {
-        Sort safeSort = sanitizeSort(pageable.getSort());
-        if (safeSort.equals(pageable.getSort())) {
-            return pageable;
+    private Dashboard requireTaskDashboard(TaskModel task) {
+        if (task.getDashboard() == null) {
+            throw ApiError.badRequest("Task does not belong to a dashboard");
         }
-        return org.springframework.data.domain.PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                safeSort);
+        return task.getDashboard();
     }
 
     private String normalizeRequiredTitle(String title) {
         String trimmed = title == null ? null : title.trim();
         if (trimmed == null || trimmed.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title must not be blank");
+            throw ApiError.badRequest("Title must not be blank");
         }
         return trimmed;
+    }
+
+    private String normalizeSearch(String search) {
+        if (search == null) {
+            return null;
+        }
+
+        String trimmed = search.trim();
+        if (trimmed.isBlank()) {
+            return null;
+        }
+        if (trimmed.length() > 255) {
+            throw ApiError.badRequest("Search query is too long");
+        }
+        return trimmed;
+    }
+
+    private List<String> toCsvRow(TaskModel task) {
+        CategoryModel category = task.getCategory();
+        TaskStatusModel status = task.getStatus();
+        Dashboard dashboard = task.getDashboard();
+
+        return List.of(
+                csvValue(task.getId()),
+                csvValue(task.getTitle()),
+                csvValue(task.getDescription()),
+                csvValue(status != null ? status.getName() : null),
+                csvValue(task.getPriority()),
+                csvValue(task.getStartDate()),
+                csvValue(task.getDeadline()),
+                csvValue(category != null ? category.getId() : null),
+                csvValue(category != null ? category.getName() : null),
+                csvValue(dashboard != null ? dashboard.getId() : null));
+    }
+
+    private String csvValue(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private void writeCsvRow(BufferedWriter writer, List<String> values) throws IOException {
+        for (int i = 0; i < values.size(); i += 1) {
+            if (i > 0) {
+                writer.write(',');
+            }
+            writer.write(escapeCsvValue(values.get(i)));
+        }
+        writer.write("\r\n");
+    }
+
+    private String escapeCsvValue(String value) {
+        return "\"" + value.replace("\"", "\"\"") + "\"";
+    }
+
+    private void validateSchedule(LocalDate startDate, LocalDate deadline) {
+        if (startDate != null && deadline != null && startDate.isAfter(deadline)) {
+            throw ApiError.badRequest("Task start date must not be after the deadline");
+        }
     }
 
     private TaskResponseDto toResponse(TaskModel task) {
@@ -252,11 +387,12 @@ public class TaskService {
                 task.getId(),
                 task.getTitle(),
                 task.getDescription(),
-                task.getStatus(),
+                task.getStatus() != null ? task.getStatus().getId() : null,
+                task.getStatus() != null ? task.getStatus().getName() : null,
                 task.getPriority(),
+                task.getStartDate(),
                 task.getDeadline(),
                 category != null ? category.getId() : null,
-                task.getDashboard() != null ? task.getDashboard().getId() : null,
-                task.getCustomStatus() != null ? task.getCustomStatus().getId() : null);
+                task.getDashboard() != null ? task.getDashboard().getId() : null);
     }
 }

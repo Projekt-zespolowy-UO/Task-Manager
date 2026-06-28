@@ -3,7 +3,6 @@ package com.project.backend.Dto;
 import java.time.LocalDate;
 
 import com.project.backend.Enum.Priority;
-import com.project.backend.Enum.Status;
 
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -19,10 +18,11 @@ public class TaskPatchDto {
     @Size(max = 5000)
     private String description;
 
-    private Status status;
+    private Long statusId;
 
     private Priority priority;
 
+    private LocalDate startDate;
     private LocalDate deadline;
 
     private Long categoryId;
