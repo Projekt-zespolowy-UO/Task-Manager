@@ -327,6 +327,16 @@ document.addEventListener("DOMContentLoaded", () => {
     overlay.classList.remove("active");
   }
 
+  function closeAllMenus() {
+    openCategoryMenu = null;
+
+    activePanelMenuStatusId = null;
+    activePanelMenuPosition = null;
+
+    activeTaskMenuStatusId = null;
+    activeTaskMenuPosition = null;
+  }
+
   function renderCategoryTabs() {
     categoryTabs.innerHTML = categories
       .map((category) => {
@@ -1334,7 +1344,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (action === "add-task") {
-      activePanelMenuStatusId = null;
+      closeAllMenus();
+      renderDashboard();
       openTaskModal(panelStatusId);
       return;
     }
