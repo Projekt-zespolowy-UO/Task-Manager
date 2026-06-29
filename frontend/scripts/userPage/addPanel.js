@@ -805,7 +805,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (action === "expand-task") {
       const task = tasks.find((item) => Number(item.id) === taskId);
-      activeTaskMenuStatusId = null;
+      closeAllMenus();
+      renderDashboard();
       openTaskDetails(task?.title || "Task", task?.description || "");
       return true;
     }
@@ -817,8 +818,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return true;
       }
 
-      activeTaskMenuStatusId = null;
-      activeTaskMenuPosition = null;
+      closeAllMenus();
+      renderDashboard();
       openTaskEditModal(task);
       return true;
     }
@@ -835,8 +836,7 @@ document.addEventListener("DOMContentLoaded", () => {
       })
         .then(() => {
           tasks = tasks.filter((item) => Number(item.id) !== taskId);
-          activeTaskMenuStatusId = null;
-          activeTaskMenuPosition = null;
+          closeAllMenus();
           renderDashboard();
         })
         .catch((error) => {
@@ -883,8 +883,7 @@ document.addEventListener("DOMContentLoaded", () => {
               : item,
           );
 
-          activeTaskMenuStatusId = null;
-          activeTaskMenuPosition = null;
+          closeAllMenus();
           renderDashboard();
         })
         .catch((error) => {
