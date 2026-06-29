@@ -29,6 +29,7 @@ import com.project.backend.Model.TaskModel;
 import com.project.backend.Model.TaskStatusModel;
 import com.project.backend.Model.UserModel;
 import com.project.backend.Repository.CategoryRepository;
+import com.project.backend.Repository.DashboardRepository;
 import com.project.backend.Repository.TaskRepository;
 import com.project.backend.Repository.TaskStatusRepository;
 import com.project.backend.Security.CustomUserDetails;
@@ -44,6 +45,7 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
+    private final DashboardRepository dashboardRepository;
     private final TaskStatusRepository taskStatusRepository;
     private final DashboardAuthorizationService dashboardAuthorizationService;
 
@@ -391,7 +393,6 @@ public class TaskService {
                 task.getStartDate(),
                 task.getDeadline(),
                 category != null ? category.getId() : null,
-                task.getDashboard() != null ? task.getDashboard().getId() : null,
-                task.getCustomStatus() != null ? task.getCustomStatus().getId() : null);
+                task.getDashboard() != null ? task.getDashboard().getId() : null);
     }
 }
