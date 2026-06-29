@@ -5,7 +5,6 @@ import java.time.LocalDate;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import com.project.backend.Enum.Priority;
-import com.project.backend.Enum.Status;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -13,7 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class TaskFilterDto {
-    private Status status;
+    private Long statusId;
     private Priority priority;
     private Long categoryId;
     private Long dashboardId;

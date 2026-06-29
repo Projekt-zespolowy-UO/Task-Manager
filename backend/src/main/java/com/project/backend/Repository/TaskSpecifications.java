@@ -21,8 +21,8 @@ public final class TaskSpecifications {
             predicates.add(cb.equal(root.get("user").get("id"), userId));
 
             if (filter != null) {
-                if (filter.getStatus() != null) {
-                    predicates.add(cb.equal(root.get("status"), filter.getStatus()));
+                if (filter.getStatusId() != null) {
+                    predicates.add(cb.equal(root.get("status").get("id"), filter.getStatusId()));
                 }
                 if (filter.getPriority() != null) {
                     predicates.add(cb.equal(root.get("priority"), filter.getPriority()));
