@@ -473,6 +473,14 @@ function closeRenameDashboardModal() {
     overlay.classList.remove("active");
   }
 
+  function closeAllMenus() {
+    openCategoryMenu = null;
+
+    activePanelMenuStatusId = null;
+    activePanelMenuPosition = null;
+
+    activeTaskMenuStatusId = null;
+    activeTaskMenuPosition = null;
   function renderDashboardOptions() {
     dashboardSelect.innerHTML = dashboards
       .map(
@@ -1124,7 +1132,8 @@ function closeRenameDashboardModal() {
 
     if (action === "expand-task") {
       const task = tasks.find((item) => Number(item.id) === taskId);
-      activeTaskMenuStatusId = null;
+      closeAllMenus();
+      renderDashboard();
       openTaskDetails(task?.title || "Task", task?.description || "");
       return true;
     }
@@ -1136,8 +1145,8 @@ function closeRenameDashboardModal() {
         return true;
       }
 
-      activeTaskMenuStatusId = null;
-      activeTaskMenuPosition = null;
+      closeAllMenus();
+      renderDashboard();
       openTaskEditModal(task);
       return true;
     }
@@ -1154,8 +1163,7 @@ function closeRenameDashboardModal() {
       })
         .then(() => {
           tasks = tasks.filter((item) => Number(item.id) !== taskId);
-          activeTaskMenuStatusId = null;
-          activeTaskMenuPosition = null;
+          closeAllMenus();
           renderDashboard();
         })
         .catch((error) => {
@@ -1202,8 +1210,7 @@ function closeRenameDashboardModal() {
               : item,
           );
 
-          activeTaskMenuStatusId = null;
-          activeTaskMenuPosition = null;
+          closeAllMenus();
           renderDashboard();
         })
         .catch((error) => {
@@ -1854,7 +1861,8 @@ function closeRenameDashboardModal() {
     }
 
     if (action === "add-task") {
-      activePanelMenuStatusId = null;
+      closeAllMenus();
+      renderDashboard();
       openTaskModal(panelStatusId);
       return;
     }
