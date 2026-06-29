@@ -7,7 +7,12 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.project.backend.Dto.TaskCategoryUpdateDto;
 import com.project.backend.Dto.TaskCreateDto;
+import com.project.backend.Dto.TaskImportResultDto;
 import com.project.backend.Dto.TaskPatchDto;
 import com.project.backend.Dto.TaskResponseDto;
 import com.project.backend.Dto.TaskStatusUpdateDto;
@@ -33,6 +39,7 @@ import com.project.backend.Repository.DashboardRepository;
 import com.project.backend.Repository.TaskRepository;
 import com.project.backend.Repository.TaskStatusRepository;
 import com.project.backend.Security.CustomUserDetails;
+import com.project.backend.Util.CsvReader;
 
 import lombok.RequiredArgsConstructor;
 
@@ -41,6 +48,7 @@ import lombok.RequiredArgsConstructor;
 public class TaskService {
 
     private static final int CSV_EXPORT_PAGE_SIZE = 500;
+    private static final int CSV_IMPORT_MAX_ROWS = 10_000;
     private static final byte[] UTF8_BOM = new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
 
     private final TaskRepository taskRepository;
@@ -74,6 +82,67 @@ public class TaskService {
             throw new RuntimeException("Failed to generate CSV", e);
         }
         return byteArrayOutputStream.toByteArray();
+    }
+
+    @Transactional
+    public TaskImportResultDto importTasksFromCsv(
+            CustomUserDetails userDetails,
+            Long dashboardId,
+            byte[] fileContent) {
+        UserModel user = requireAuthenticatedUser(userDetails);
+        Dashboard dashboard = requireAccessibleDashboard(dashboardId, user.getId());
+
+        if (fileContent == null || fileContent.length == 0) {
+            throw ApiError.badRequest("CSV file must not be empty");
+        }
+
+        List<List<String>> rows = CsvReader.parse(new String(fileContent, StandardCharsets.UTF_8));
+        if (rows.isEmpty()) {
+            throw ApiError.badRequest("CSV file must not be empty");
+        }
+
+        Map<String, Integer> columns = mapColumns(rows.get(0));
+        if (!columns.containsKey("title")) {
+            throw ApiError.badRequest("CSV header must contain a \"Title\" column");
+        }
+        if (rows.size() - 1 > CSV_IMPORT_MAX_ROWS) {
+            throw ApiError.badRequest("CSV file contains too many rows (max " + CSV_IMPORT_MAX_ROWS + ")");
+        }
+
+        Map<String, CategoryModel> categoriesByName = new HashMap<>();
+        Map<Long, CategoryModel> categoriesById = new HashMap<>();
+        for (CategoryModel category : categoryRepository.findByDashboard_IdOrderByIdAsc(dashboardId)) {
+            categoriesById.put(category.getId(), category);
+            if (category.getName() != null) {
+                categoriesByName.putIfAbsent(category.getName().trim().toLowerCase(Locale.ROOT), category);
+            }
+        }
+        Map<Long, List<TaskStatusModel>> statusesByCategory = new HashMap<>();
+
+        List<TaskModel> toCreate = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        int totalRows = 0;
+
+        for (int i = 1; i < rows.size(); i++) {
+            List<String> row = rows.get(i);
+            if (isBlankRow(row)) {
+                continue;
+            }
+            totalRows += 1;
+
+            try {
+                toCreate.add(buildTaskFromRow(
+                        row, columns, dashboard, user,
+                        categoriesById, categoriesByName, statusesByCategory));
+            } catch (ApiError e) {
+                // Header occupies line 1, so the data row on index i is line i + 1.
+                errors.add("Row " + (i + 1) + ": " + e.getMessage());
+            }
+        }
+
+        taskRepository.saveAll(toCreate);
+
+        return new TaskImportResultDto(totalRows, toCreate.size(), errors.size(), errors);
     }
 
     @Transactional(readOnly = true)
@@ -377,6 +446,155 @@ public class TaskService {
     private void validateSchedule(LocalDate startDate, LocalDate deadline) {
         if (startDate != null && deadline != null && startDate.isAfter(deadline)) {
             throw ApiError.badRequest("Task start date must not be after the deadline");
+        }
+    }
+
+    private Map<String, Integer> mapColumns(List<String> header) {
+        Map<String, Integer> columns = new HashMap<>();
+        for (int i = 0; i < header.size(); i++) {
+            String name = header.get(i);
+            if (name != null) {
+                columns.putIfAbsent(name.trim().toLowerCase(Locale.ROOT), i);
+            }
+        }
+        return columns;
+    }
+
+    private String cell(List<String> row, Map<String, Integer> columns, String columnName) {
+        Integer index = columns.get(columnName);
+        if (index == null || index >= row.size()) {
+            return null;
+        }
+        String value = row.get(index);
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private boolean isBlankRow(List<String> row) {
+        return row.stream().allMatch(value -> value == null || value.isBlank());
+    }
+
+    private TaskModel buildTaskFromRow(
+            List<String> row,
+            Map<String, Integer> columns,
+            Dashboard dashboard,
+            UserModel user,
+            Map<Long, CategoryModel> categoriesById,
+            Map<String, CategoryModel> categoriesByName,
+            Map<Long, List<TaskStatusModel>> statusesByCategory) {
+
+        String title = normalizeRequiredTitle(cell(row, columns, "title"));
+        if (title.length() > 255) {
+            throw ApiError.badRequest("Title must not exceed 255 characters");
+        }
+
+        String description = cell(row, columns, "description");
+        if (description != null && description.length() > 5000) {
+            throw ApiError.badRequest("Description must not exceed 5000 characters");
+        }
+
+        LocalDate startDate = parseDate(cell(row, columns, "start date"), "Start Date");
+        LocalDate deadline = parseDate(cell(row, columns, "deadline"), "Deadline");
+        validateSchedule(startDate, deadline);
+        Priority priority = parsePriority(cell(row, columns, "priority"));
+
+        CategoryModel category = resolveCategory(row, columns, categoriesById, categoriesByName);
+        TaskStatusModel status = resolveStatus(cell(row, columns, "status"), category, statusesByCategory);
+
+        TaskModel task = new TaskModel();
+        task.setTitle(title);
+        task.setDescription(description);
+        task.setStartDate(startDate);
+        task.setDeadline(deadline);
+        task.setPriority(priority);
+        task.setCategory(category);
+        task.setStatus(status);
+        task.setUser(user);
+        task.setDashboard(dashboard);
+        return task;
+    }
+
+    private CategoryModel resolveCategory(
+            List<String> row,
+            Map<String, Integer> columns,
+            Map<Long, CategoryModel> categoriesById,
+            Map<String, CategoryModel> categoriesByName) {
+        String categoryName = cell(row, columns, "category name");
+        if (categoryName != null) {
+            CategoryModel category = categoriesByName.get(categoryName.toLowerCase(Locale.ROOT));
+            if (category == null) {
+                throw ApiError.badRequest("Category \"" + categoryName + "\" was not found in this dashboard");
+            }
+            return category;
+        }
+
+        String categoryId = cell(row, columns, "category id");
+        if (categoryId != null) {
+            Long id = parseLong(categoryId, "Category ID");
+            CategoryModel category = categoriesById.get(id);
+            if (category == null) {
+                throw ApiError.badRequest("Category with id " + id + " was not found in this dashboard");
+            }
+            return category;
+        }
+
+        throw ApiError.badRequest("Category Name or Category ID is required");
+    }
+
+    private TaskStatusModel resolveStatus(
+            String statusName,
+            CategoryModel category,
+            Map<Long, List<TaskStatusModel>> statusesByCategory) {
+        List<TaskStatusModel> statuses = statusesByCategory.computeIfAbsent(
+                category.getId(),
+                taskStatusRepository::findByCategory_IdOrderByPositionAsc);
+
+        if (statuses.isEmpty()) {
+            throw ApiError.badRequest("Category \"" + category.getName() + "\" has no statuses");
+        }
+
+        if (statusName != null) {
+            for (TaskStatusModel status : statuses) {
+                if (statusName.equalsIgnoreCase(status.getName())) {
+                    return status;
+                }
+            }
+        }
+
+        // Fall back to the first status (by position) when none is given or it does not match.
+        return statuses.get(0);
+    }
+
+    private LocalDate parseDate(String value, String fieldLabel) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value);
+        } catch (DateTimeParseException e) {
+            throw ApiError.badRequest(fieldLabel + " has an invalid date (expected yyyy-MM-dd)");
+        }
+    }
+
+    private Priority parsePriority(String value) {
+        if (value == null) {
+            return Priority.MEDIUM;
+        }
+        try {
+            return Priority.valueOf(value.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw ApiError.badRequest("Priority must be one of LOW, MEDIUM, HIGH");
+        }
+    }
+
+    private Long parseLong(String value, String fieldLabel) {
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            throw ApiError.badRequest(fieldLabel + " must be a number");
         }
     }
 
