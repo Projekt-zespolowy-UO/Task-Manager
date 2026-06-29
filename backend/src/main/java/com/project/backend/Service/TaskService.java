@@ -393,6 +393,7 @@ public class TaskService {
                 task.getStartDate(),
                 task.getDeadline(),
                 category != null ? category.getId() : null,
-                task.getDashboard() != null ? task.getDashboard().getId() : null);
+                task.getDashboard() != null ? task.getDashboard().getId() : null,
+                task.getCustomStatus() != null ? task.getCustomStatus().getId() : null);
     }
 }
