@@ -1,5 +1,6 @@
 package com.project.backend.Controller;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -18,13 +19,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.project.backend.Dto.TaskCategoryUpdateDto;
 import com.project.backend.Dto.TaskCreateDto;
+import com.project.backend.Dto.TaskImportResultDto;
 import com.project.backend.Dto.TaskPatchDto;
 import com.project.backend.Dto.TaskResponseDto;
 import com.project.backend.Dto.TaskStatusUpdateDto;
 import com.project.backend.Dto.TaskUpdateDto;
+import com.project.backend.Exception.ApiError;
 import com.project.backend.Security.CustomUserDetails;
 import com.project.backend.Service.TaskService;
 
@@ -82,6 +86,26 @@ public class TaskController {
                         HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(filename).build().toString())
                 .body(csvData);
+    }
+
+    @PostMapping(value = "/import.csv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Import tasks from a CSV file into a dashboard")
+    public TaskImportResultDto importTasksCsv(
+            @RequestParam Long dashboardId,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        if (file == null || file.isEmpty()) {
+            throw ApiError.badRequest("CSV file must not be empty");
+        }
+
+        byte[] content;
+        try {
+            content = file.getBytes();
+        } catch (IOException e) {
+            throw ApiError.badRequest("Failed to read the uploaded CSV file");
+        }
+
+        return taskService.importTasksFromCsv(userDetails, dashboardId, content);
     }
 
     @PostMapping
